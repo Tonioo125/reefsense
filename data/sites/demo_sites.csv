@@ -1,0 +1,11 @@
+site_id,name,region,lat,lon,coral_cover_pct,refugia_50reefs_plus,connectivity,in_mpa
+NP01,Crystal Bay,Nusa Penida,-8.7155,115.4560,,,,
+NP02,Toyapakeh,Nusa Penida,-8.6810,115.4830,,,,
+NP03,Manta Point,Nusa Penida,-8.7950,115.5280,,,,
+NP04,Mangrove Point,Nusa Lembongan,-8.6600,115.4600,,,,
+BL01,Tulamben,East Bali,-8.2740,115.5930,,,,
+BL02,Jemeluk Bay,East Bali,-8.3370,115.6600,,,,
+BL03,Blue Lagoon,Padang Bai,-8.5300,115.5120,,,,
+BL04,Menjangan Island,West Bali,-8.0950,114.5150,,,,
+BL05,Pemuteran,North Bali,-8.1380,114.6550,,,,
+BL06,Nusa Dua,South Bali,-8.8000,115.2400,,,,
