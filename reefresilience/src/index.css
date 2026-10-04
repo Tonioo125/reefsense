@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  ReefResilience design tokens.
+  Palette: warm off-white backgrounds, deep forest-green primary,
+  a muted cyan/teal brand accent and earth-toned qualitative colors.
+*/
+@layer base {
+  :root {
+    --background: 56 24% 98%;
+    --foreground: 165 32% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 165 32% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 165 32% 11%;
+
+    --primary: 160 38% 15%;
+    --primary-foreground: 56 30% 97%;
+
+    --secondary: 150 20% 95%;
+    --secondary-foreground: 162 30% 18%;
+
+    --muted: 54 16% 95%;
+    --muted-foreground: 155 9% 42%;
+
+    --accent: 184 40% 93%;
+    --accent-foreground: 186 56% 20%;
+
+    --brand: 184 52% 34%;
+    --brand-foreground: 56 30% 98%;
+
+    --border: 54 12% 88%;
+    --input: 54 12% 88%;
+    --ring: 184 44% 38%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv05", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: hsl(var(--brand) / 0.18);
+  }
+
+  /* Thin, unobtrusive scrollbars for the analysis panel. */
+  .scroll-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scroll-subtle::-webkit-scrollbar {
+    width: 8px;
+  }
+  .scroll-subtle::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* --- Leaflet integration -------------------------------------------------- */
+.leaflet-container {
+  font-family: inherit;
+  background: #e6edec;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: hsl(0 0% 100% / 0.75) !important;
+  color: hsl(var(--muted-foreground));
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a {
+  color: hsl(var(--brand));
+}
+
+.leaflet-bar,
+.leaflet-bar a {
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--primary)) !important;
+}
+.leaflet-bar a:hover {
+  background: hsl(var(--secondary)) !important;
+}
+
+/* Clean, label-style tooltips for reef markers. */
+.reef-tooltip {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 6px 18px -10px rgba(16, 40, 34, 0.6);
+}
+.reef-tooltip::before {
+  border-top-color: hsl(var(--primary)) !important;
+}
