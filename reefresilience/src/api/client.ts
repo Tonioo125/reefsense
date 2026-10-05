@@ -1,7 +1,14 @@
-import type { FeatureContribution, ModelMetrics, Reef, ResilienceCategory } from "@/types/reef";
+import type {
+  ModelMetrics,
+  PredictRequest,
+  PredictResponse,
+  Reef,
+  ReefExplanation,
+} from "@/types/reef";
 
 /**
- * Frontend API layer. Talks to the FastAPI backend (backend/main.py):
+ * Frontend API layer. Every function calls the ReefCast FastAPI backend
+ * (backend/main.py); there is no mock fallback.
  *
  *   GET  /api/reefs                   -> listReefs()
  *   GET  /api/reefs/{id}              -> getReef(id)
@@ -10,68 +17,76 @@ import type { FeatureContribution, ModelMetrics, Reef, ResilienceCategory } from
  *   GET  /api/model                   -> getModelMetrics()
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
-
-async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, init);
-  } catch {
-    throw new Error("The ReefResilience API is unreachable.");
-  }
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Request to ${path} failed with status ${res.status}.`);
-  }
-  return res.json() as Promise<T>;
+export interface ApiConfig {
+  /** Backend origin without trailing slash. Empty = same-origin `/api`. */
+  baseUrl: string;
 }
 
+/** Read on every call so the configuration can be changed in tests. */
+export function getApiConfig(): ApiConfig {
+  return { baseUrl: (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "") };
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  const { baseUrl } = getApiConfig();
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}/api${path}`, {
+      ...init,
+      headers: { Accept: "application/json", ...init?.headers },
+    });
+  } catch {
+    throw new ApiError("The ReefResilience API is unreachable.");
+  }
+  if (!res.ok) throw new ApiError(`Request to ${path} failed (${res.status})`, res.status);
+  return (await res.json()) as T;
+}
+
+/** Like `http`, but resolves to `null` for 404 Not Found. */
+async function httpOrNull<T>(path: string): Promise<T | null> {
+  try {
+    return await http<T>(path);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+/** GET /api/reefs */
 export function listReefs(): Promise<Reef[]> {
   return http<Reef[]>("/reefs");
 }
 
-export function getReef(id: string): Promise<Reef> {
-  return http<Reef>(`/reefs/${encodeURIComponent(id)}`);
+/** GET /api/reefs/{id} */
+export function getReef(id: string): Promise<Reef | null> {
+  return httpOrNull<Reef>(`/reefs/${encodeURIComponent(id)}`);
 }
 
-export interface Explanation {
-  reefId: string;
-  category: ResilienceCategory;
-  probability: number;
-  contributions: FeatureContribution[];
-  units: string;
-  summary: string;
+/** GET /api/reefs/{id}/explanation */
+export function getExplanation(id: string): Promise<ReefExplanation | null> {
+  return httpOrNull<ReefExplanation>(`/reefs/${encodeURIComponent(id)}/explanation`);
 }
 
-export function getExplanation(id: string): Promise<Explanation> {
-  return http<Explanation>(`/reefs/${encodeURIComponent(id)}/explanation`);
-}
-
-export interface PredictInput {
-  latitude: number;
-  longitude: number;
-  /** Peak Degree Heating Weeks over the past 12 weeks. */
-  dhwMax12w: number;
-  sstAnomaly?: number;
-  depth?: number;
-}
-
-export interface PredictResult {
-  probability: number;
-  bleachingProbability: number;
-  category: ResilienceCategory;
-  contributions: FeatureContribution[];
-  nearestSurveyKm: number;
-}
-
-export function predict(input: PredictInput): Promise<PredictResult> {
-  return http<PredictResult>("/predict", {
+/** POST /api/predict: score any location under a given heat-stress scenario. */
+export function predict(input: PredictRequest): Promise<PredictResponse> {
+  return http<PredictResponse>("/predict", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 }
 
+/** GET /api/model: cross-validated performance of the served model. */
 export async function getModelMetrics(): Promise<ModelMetrics | null> {
   const { metrics } = await http<{ metrics: ModelMetrics }>("/model");
   return metrics?.model ? metrics : null;

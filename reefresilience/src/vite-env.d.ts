@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_API_BASE?: string;
+  /** Origin of the FastAPI backend. Empty = same-origin `/api` (proxied in dev). */
+  readonly VITE_API_BASE_URL?: string;
 }
 
 interface ImportMeta {

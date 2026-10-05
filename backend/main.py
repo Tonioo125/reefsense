@@ -117,10 +117,10 @@ def insight(resilience, contributions, dhw_max):
 
 
 def to_reef(site):
+    """GET /api/reefs item. Explanation fields live in GET /api/reefs/{id}/explanation."""
     p = site["bleaching_probability"]
     resilience = round(1 - p, 4)
     heat = site["heat"]
-    contributions = resilience_contributions(site.get("contributions", []), TOP_CONTRIBUTIONS)
     alert = heat.get("alert_level")
     site_cover = site.get("coral_cover_pct")
     return {
@@ -143,8 +143,6 @@ def to_reef(site):
             "heatStress": heat_stress_level(heat.get("dhw_max_12w")),
             "alertLevel": None if alert is None else f"NOAA: {ALERT_LABELS[int(alert)].lower()} now",
         },
-        "contributions": contributions,
-        "insight": insight(resilience, contributions, heat.get("dhw_max_12w") or 0.0),
         "nearestSurveyKm": site.get("nearest_survey_km"),
         "asOf": heat.get("as_of"),
     }
@@ -227,13 +225,15 @@ def get_reef(reef_id: str):
 def get_explanation(reef_id: str):
     site = find_site(reef_id)
     reef = to_reef(site)
+    contributions = resilience_contributions(site.get("contributions", []), TOP_CONTRIBUTIONS)
     return {
         "reefId": reef["id"],
         "category": reef["category"],
         "probability": reef["resilienceProbability"],
-        "contributions": resilience_contributions(site.get("contributions", [])),
+        "contributions": contributions,
         "units": "log-odds of avoiding bleaching",
-        "summary": reef["insight"],
+        "summary": insight(reef["resilienceProbability"], contributions,
+                           site["heat"].get("dhw_max_12w") or 0.0),
     }
 
 

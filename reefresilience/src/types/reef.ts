@@ -34,6 +34,7 @@ export interface FeatureContribution {
   contribution: number;
 }
 
+/** GET /api/reefs and GET /api/reefs/{id} */
 export interface Reef {
   id: string;
   name: string;
@@ -50,9 +51,39 @@ export interface Reef {
   /** Date of the latest satellite heat-stress observation. */
   asOf?: string | null;
   metrics: EnvironmentalMetrics;
+}
+
+/** GET /api/reefs/{id}/explanation */
+export interface ReefExplanation {
+  reefId: string;
+  category: ResilienceCategory;
+  probability: number;
   contributions: FeatureContribution[];
+  /** Units of the contributions, e.g. "log-odds of avoiding bleaching". */
+  units: string;
   /** Short, plain-language model-based interpretation. */
-  insight: string;
+  summary: string;
+}
+
+/** POST /api/predict request body: score a location under a heat-stress scenario. */
+export interface PredictRequest {
+  latitude: number;
+  longitude: number;
+  /** Peak Degree Heating Weeks over the past 12 weeks. */
+  dhwMax12w: number;
+  /** Mean sea temperature anomaly, last 30 days (°C). */
+  sstAnomaly?: number;
+  /** Reef depth (m). */
+  depth?: number;
+}
+
+/** POST /api/predict response body. */
+export interface PredictResponse {
+  probability: number;
+  bleachingProbability: number;
+  category: ResilienceCategory;
+  contributions: FeatureContribution[];
+  nearestSurveyKm: number;
 }
 
 export type ReefFilter = "All" | ResilienceCategory;
@@ -62,6 +93,7 @@ export interface ModelMetrics {
   region: string;
   n_rows: number;
   positive_rate: number;
+  features: string[];
   validation: string;
   model: { roc_auc: number | null; pr_auc: number };
   baseline_dhw?: { feature: string; roc_auc: number | null };

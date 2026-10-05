@@ -44,8 +44,10 @@
     @apply border-border;
   }
 
-  html {
-    scroll-behavior: smooth;
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
@@ -102,6 +104,24 @@
 .leaflet-bar a:hover {
   background: hsl(var(--secondary)) !important;
 }
+.leaflet-bar a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.leaflet-container:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+/* Chrome outlines clicked SVG markers; selection is shown by stroke + halo instead. */
+path.leaflet-interactive:focus {
+  outline: none;
+}
+
+/* Desaturate the OSM basemap so it sits quietly under the muted palette. */
+.leaflet-tile-pane {
+  filter: saturate(0.45) brightness(1.03) contrast(0.95);
+}
 
 /* Clean, label-style tooltips for reef markers. */
 .reef-tooltip {
@@ -116,4 +136,15 @@
 }
 .reef-tooltip::before {
   border-top-color: hsl(var(--primary)) !important;
+}
+
+/* --- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

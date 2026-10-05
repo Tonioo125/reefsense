@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Flame, Ruler, Sprout, Thermometer, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { levelTone } from "@/lib/reef";
@@ -22,31 +23,23 @@ function LevelPill({ level, note }: { level: QualitativeLevel; note?: string | n
   );
 }
 
-function Value({ children, note }: { children: React.ReactNode; note?: string }) {
+function Value({ children, note }: { children: ReactNode; note?: string }) {
   return (
-    <span className="text-right">
-      <span className="text-sm font-medium tabular-nums">{children}</span>
+    <span className="block text-right">
+      <span className="text-sm font-medium tabular-nums text-foreground">{children}</span>
       {note && <span className="block text-[11px] text-muted-foreground">{note}</span>}
     </span>
   );
 }
 
-function Row({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Row({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Icon className="h-4 w-4 shrink-0 text-primary/70" strokeWidth={1.75} />
+      <dt className="flex items-center gap-2.5 text-sm text-muted-foreground">
+        <Icon className="h-4 w-4 shrink-0 text-primary/70" strokeWidth={1.75} aria-hidden="true" />
         {label}
-      </span>
-      {children}
+      </dt>
+      <dd>{children}</dd>
     </div>
   );
 }
@@ -56,14 +49,16 @@ const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`
 
 /**
  * Environmental predictors for the selected reef. Styled as a quiet, scientific
- * variable list rather than a grid of dashboard stat cards. Rows only appear
- * when the data source provides them.
+ * variable list rather than a grid of dashboard stat cards. Values the source
+ * data does not provide are shown as "n/a", never estimated.
  */
 export default function EnvironmentalMetrics({ metrics }: EnvironmentalMetricsProps) {
   return (
-    <div className="divide-y divide-border">
+    <dl className="divide-y divide-border">
       <Row icon={Thermometer} label="Sea surface temperature">
-        <Value note={metrics.sstAnomaly != null ? `${signed(metrics.sstAnomaly)} °C vs normal` : undefined}>
+        <Value
+          note={metrics.sstAnomaly != null ? `${signed(metrics.sstAnomaly)} °C vs normal` : undefined}
+        >
           {fmt(metrics.seaSurfaceTemp)} °C
         </Value>
       </Row>
@@ -83,7 +78,11 @@ export default function EnvironmentalMetrics({ metrics }: EnvironmentalMetricsPr
       </Row>
       <Row icon={Sprout} label="Coral cover">
         <Value
-          note={metrics.coralCoverSource === "nearby surveys" && metrics.coralCover != null ? "nearby surveys" : undefined}
+          note={
+            metrics.coralCoverSource === "nearby surveys" && metrics.coralCover != null
+              ? "nearby surveys"
+              : undefined
+          }
         >
           {metrics.coralCover == null ? "n/a" : `${Math.round(metrics.coralCover)}%`}
         </Value>
@@ -91,6 +90,6 @@ export default function EnvironmentalMetrics({ metrics }: EnvironmentalMetricsPr
       <Row icon={Ruler} label="Depth">
         <Value>{metrics.depth == null ? "n/a" : `${fmt(metrics.depth)} m`}</Value>
       </Row>
-    </div>
+    </dl>
   );
 }
