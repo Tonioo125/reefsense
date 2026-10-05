@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { Loader2, MapPin } from "lucide-react";
-import { listReefs } from "@/api/client";
+import { getModelMetrics, listReefs } from "@/api/client";
 import AboutSection from "@/components/AboutSection";
 import Hero from "@/components/Hero";
 import InsightsSection from "@/components/InsightsSection";
@@ -12,10 +12,9 @@ import ResilienceMap from "@/components/ResilienceMap";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReefDetail } from "@/hooks/useReefDetail";
-import { ENVIRONMENTAL_VARIABLES } from "@/lib/reef";
 import { scrollToSection } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
-import type { Reef, ReefExplanation, ReefFilter } from "@/types/reef";
+import type { ModelMetrics, Reef, ReefExplanation, ReefFilter } from "@/types/reef";
 
 function PanelEmptyState() {
   return (
@@ -114,6 +113,7 @@ function BottomSheet({ open, onClose, labelledBy, initialFocusRef, children }: B
 
 export default function Explore() {
   const [reefs, setReefs] = useState<Reef[]>([]);
+  const [metrics, setMetrics] = useState<ModelMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -129,10 +129,11 @@ export default function Explore() {
     let active = true;
     setLoading(true);
     setError(null);
-    listReefs()
-      .then((data) => {
+    Promise.all([listReefs(), getModelMetrics().catch(() => null)])
+      .then(([data, m]) => {
         if (!active) return;
         setReefs(data);
+        setMetrics(m);
         setLoading(false);
       })
       .catch(() => {
@@ -173,11 +174,6 @@ export default function Explore() {
     [reefs, filter],
   );
 
-  const basinCount = useMemo(
-    () => (reefs.length ? new Set(reefs.map((r) => r.ocean)).size : null),
-    [reefs],
-  );
-
   // Show the list record immediately; swap in the detail response once loaded.
   const listReef = reefs.find((r) => r.id === selectedId) ?? null;
   const panelReef = detail.reef && detail.reef.id === selectedId ? detail.reef : listReef;
@@ -215,8 +211,8 @@ export default function Explore() {
       <Hero
         onExplore={() => scrollToSection("explore")}
         reefCount={loading || error ? null : reefs.length}
-        basinCount={basinCount}
-        predictorCount={ENVIRONMENTAL_VARIABLES.length}
+        surveyCount={metrics?.n_rows ?? null}
+        predictorCount={metrics?.features.length ?? null}
       />
 
       <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-16">
@@ -250,6 +246,10 @@ export default function Explore() {
                   className="rounded-lg border border-border bg-background px-5 py-4 text-center shadow-float"
                 >
                   <p className="text-sm text-muted-foreground">{error}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Is the API running? <code>uvicorn main:app --port 8000</code> in{" "}
+                    <code>backend/</code>
+                  </p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -292,7 +292,7 @@ export default function Explore() {
         )}
       </section>
 
-      <InsightsSection reefs={reefs} />
+      <InsightsSection reefs={reefs} metrics={metrics} />
       <AboutSection />
     </>
   );

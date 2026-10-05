@@ -6,16 +6,16 @@ ReefResilience helps answer one question:
 
 > _Which coral reef areas are more likely to remain resilient under climate stress?_
 
-It pairs an interactive global map with explainable, model-based predictions. This repository is a **frontend prototype running on mock data**. The Python backend is intentionally not implemented yet; the API layer is built so the mock data can be swapped for a FastAPI backend without touching UI components.
+It pairs an interactive global map with explainable, model-based predictions served by the ReefCast FastAPI backend (`../backend`). The model is a LightGBM bleaching classifier trained on the Global Coral-Bleaching Database, scored against live NOAA Coral Reef Watch heat stress.
 
-> Scientific framing: every value is a **predicted probability of high climate resilience**, not a "resilience score". The platform supports prioritisation; it does not prove that a reef is resilient.
+> Scientific framing: every value is a **predicted probability of high climate resilience**, defined as the model's estimated chance that the reef avoids bleaching of 10% or more of its colonies under the past 12 weeks of satellite heat stress. It is not a "resilience score". The platform supports prioritisation; it does not prove that a reef is resilient.
 
 ## Features
 
-- **Resilience map**: a world map (React Leaflet + OpenStreetMap) of 24 reef sites, colour-coded by predicted category (High / Medium / Low), with a floating legend and a category filter.
-- **AI prediction**: selecting a reef opens an analysis panel with the predicted probability, environmental predictors and model confidence.
-- **AI explanation**: a SHAP-style diverging bar chart showing which predictors raise or lower the estimate, plus a short model insight.
-- **Insights**: aggregate, model-based patterns across the dataset (Recharts).
+- **Resilience map**: a world map (React Leaflet + OpenStreetMap) of the scored reef sites, colour-coded by predicted category (High / Medium / Low), with a floating legend and a category filter.
+- **AI prediction**: selecting a reef opens an analysis panel with the predicted probability and its environmental predictors (sea temperature, Degree Heating Weeks, NOAA alert status, coral cover, depth).
+- **AI explanation**: a SHAP-style diverging bar chart showing which predictors raise or lower the estimate, plus a short model insight and how well the estimate is supported by nearby survey data.
+- **Insights**: aggregate patterns across the mapped reefs and the model's cross-validated skill against heat stress alone (Recharts).
 
 ## Tech stack
 
@@ -25,12 +25,18 @@ All dependency versions are pinned exactly in `package.json`. react-leaflet 4 re
 
 ## Getting started
 
-Requires **Node 18+** (20 recommended, see `.nvmrc`). If your nvm defaults to an older Node, run `nvm use 20` first; Vite 5 fails to start on Node 14/16.
+Requires **Node 18+** (20 recommended, see `.nvmrc`). If your nvm defaults to an older Node, run `nvm use 20` first; Vite 5 fails to start on Node 14/16. The API must be running (see the top-level README for the data pipeline):
 
 ```bash
+# terminal 1 — API
+cd ../backend && uvicorn main:app --port 8000
+
+# terminal 2 — frontend (proxies /api to localhost:8000)
 npm install
 npm run dev        # http://localhost:5173
 ```
+
+There is no offline or mock mode: every number shown comes from the trained model and real data. If the API is down, the map says so instead of showing placeholder values.
 
 Other scripts:
 
@@ -47,15 +53,14 @@ Copy `.env.example` to `.env` to change them.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `VITE_USE_MOCK` | `true` | Any value other than `false` serves data from `src/data/mockReefs.ts` with ~350 ms simulated latency. |
-| `VITE_API_BASE_URL` | _(empty)_ | Backend origin. Empty means same-origin `/api/...`, which the dev server proxies to `http://localhost:8000`. |
+| `VITE_API_BASE_URL` | _(empty)_ | Backend origin. Empty means same-origin `/api/...`, which the dev server proxies to `http://localhost:8000`. A different origin needs CORS enabled on the backend (`REEFCAST_CORS`). |
 
 ## Project structure
 
 ```
 src/
   api/
-    client.ts               # API layer: mock or HTTP, mirrors the FastAPI contract
+    client.ts               # API layer for the FastAPI backend
     client.test.ts
   components/
     Navbar.tsx
@@ -67,14 +72,11 @@ src/
     ResilienceScore.tsx     # Headline predicted probability
     EnvironmentalMetrics.tsx
     FeatureContributions.tsx # SHAP-style model explanation
-    ReefInsight.tsx         # Confidence, top factors, environmental summary
+    ReefInsight.tsx         # Top factors, data support, environmental summary
     InsightsSection.tsx     # Recharts aggregate charts
     AboutSection.tsx
     Footer.tsx
     ui/                     # shadcn/ui primitives (Button, Badge)
-  data/
-    mockReefs.ts            # The only place reef data lives
-    mockReefs.test.ts
   hooks/
     useMediaQuery.ts        # Breakpoints + prefers-reduced-motion
     useReefDetail.ts        # Loads reef + explanation for the selection
@@ -92,7 +94,7 @@ src/
 components.json             # shadcn/ui configuration
 ```
 
-Reef data is never hardcoded in UI components. It flows from `data/mockReefs.ts` through `api/client.ts` into the views.
+Reef data is never hardcoded in UI components. It flows from the API through `api/client.ts` into the views.
 
 ## Responsive behaviour
 
@@ -102,27 +104,21 @@ Reef data is never hardcoded in UI components. It flows from `data/mockReefs.ts`
 
 Animations are subtle and turn off when the OS requests reduced motion.
 
-## Connecting the FastAPI backend
-
-The frontend already calls this contract:
+## API
 
 | Endpoint | Function in `src/api/client.ts` | Response type (`src/types/reef.ts`) |
 |---|---|---|
 | `GET /api/reefs` | `listReefs()` | `Reef[]` |
 | `GET /api/reefs/{id}` | `getReef(id)` | `Reef` (404 → `null`) |
-| `POST /api/predict` | `predict(input)` | body `PredictRequest`, returns `PredictResponse` |
 | `GET /api/reefs/{id}/explanation` | `getExplanation(id)` | `ReefExplanation` (404 → `null`) |
+| `POST /api/predict` | `predict(input)` | body `PredictRequest`, returns `PredictResponse` |
+| `GET /api/model` | `getModelMetrics()` | `ModelMetrics` |
 
-To go live:
-
-1. Create `.env` with `VITE_USE_MOCK=false`.
-2. Either leave `VITE_API_BASE_URL` empty and run FastAPI on `http://localhost:8000` (the Vite dev proxy forwards `/api`), or set it to the full backend URL. A different origin needs CORS enabled on the backend.
-3. Restart `npm run dev`.
-
-No component changes are needed. Non-2xx responses other than 404 surface as an `ApiError`, which the UI shows with a "Try again" action.
+Non-2xx responses other than 404, and an unreachable API, surface as an `ApiError`, which the UI shows with a "Try again" action.
 
 ## Notes
 
-- All reef data is illustrative mock data for demonstration only.
+- Reefs show only the variables the data supports: sea temperature and anomaly, Degree Heating Weeks and current NOAA alert status (NOAA Coral Reef Watch), and coral cover and depth from the nearest surveys (GCBD). There is no human-pressure variable or per-reef confidence score, because neither exists in the source data. Missing values are shown as "n/a", never estimated.
+- Feature contributions are in log-odds and sign-flipped from the bleaching model, so positive values raise predicted resilience.
 - `React.StrictMode` is intentionally omitted in `main.tsx` to avoid Leaflet's double-mount initialisation error in development.
 - Map tiles come from the public OpenStreetMap tile server; respect its [usage policy](https://operations.osmfoundation.org/policies/tiles/) for anything beyond prototyping.

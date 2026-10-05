@@ -1,0 +1,44 @@
+{
+  "region": "coral_triangle",
+  "n_rows": 3778,
+  "positive_rate": 0.11461090524086819,
+  "features": [
+    "TSA_DHW",
+    "TSA_DHWMax",
+    "TSA_DHWMean",
+    "SSTA",
+    "SSTA_DHW",
+    "TSA",
+    "SSTA_Frequency",
+    "TSA_Frequency",
+    "ClimSST",
+    "Temperature_Mean",
+    "Turbidity",
+    "Depth_m",
+    "Distance_to_Shore",
+    "Exposure",
+    "Cyclone_Frequency",
+    "Windspeed"
+  ],
+  "validation": "GroupKFold (5 folds) by ecoregion",
+  "model": {
+    "roc_auc": 0.7238106580777901,
+    "pr_auc": 0.3732345274613342
+  },
+  "baseline_dhw": {
+    "feature": "TSA_DHW",
+    "roc_auc": 0.675137480711275,
+    "dhw_ge_4": {
+      "recall": 0.21709006928406466,
+      "precision": 0.4
+    },
+    "dhw_ge_8": {
+      "recall": 0.07390300230946882,
+      "precision": 0.5714285714285714
+    }
+  },
+  "indonesia_subset": {
+    "n_rows": 937,
+    "roc_auc": 0.7328842795537973
+  }
+}

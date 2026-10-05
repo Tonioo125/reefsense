@@ -81,6 +81,7 @@ export default function FeatureContributions({
           <span className="h-2 w-2 rounded-full" style={{ background: NEGATIVE }} />
           Lowers it
         </span>
+        <span className="ml-auto">log-odds</span>
       </div>
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
         Contributions are model-based estimates (SHAP-style) relative to the dataset average.

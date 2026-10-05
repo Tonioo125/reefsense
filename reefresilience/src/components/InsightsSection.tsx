@@ -11,16 +11,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  CATEGORY_COLORS,
-  CATEGORY_ORDER,
-  ENVIRONMENTAL_VARIABLES,
-  formatPercent,
-} from "@/lib/reef";
-import type { Reef } from "@/types/reef";
+import { CATEGORY_COLORS, CATEGORY_ORDER, formatPercent } from "@/lib/reef";
+import type { ModelMetrics, Reef } from "@/types/reef";
 
 interface InsightsSectionProps {
   reefs: Reef[];
+  metrics: ModelMetrics | null;
 }
 
 const AXIS = { fill: "hsl(155 9% 42%)", fontSize: 11 };
@@ -35,26 +31,30 @@ const tooltipStyle = {
 const mean = (values: number[]) =>
   values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
 
-export default function InsightsSection({ reefs }: InsightsSectionProps) {
+export default function InsightsSection({ reefs, metrics }: InsightsSectionProps) {
   const { countData, scatterData, stats } = useMemo(() => {
     const counts = CATEGORY_ORDER.map((category) => ({
       category,
       count: reefs.filter((r) => r.category === category).length,
       color: CATEGORY_COLORS[category].base,
     }));
-    const scatter = reefs.map((r) => ({
-      sst: r.metrics.seaSurfaceTemp,
-      prob: Math.round(r.resilienceProbability * 100),
-      name: r.name,
-      color: CATEGORY_COLORS[r.category].base,
-    }));
+    const scatter = reefs
+      .filter((r) => r.metrics.seaSurfaceTemp != null)
+      .map((r) => ({
+        sst: Number(r.metrics.seaSurfaceTemp!.toFixed(1)),
+        prob: Math.round(r.resilienceProbability * 100),
+        name: r.name,
+        color: CATEGORY_COLORS[r.category].base,
+      }));
     const high = reefs.filter((r) => r.category === "High").length;
     const has = reefs.length > 0;
+    const auc = metrics?.model.roc_auc;
+    const baseAuc = metrics?.baseline_dhw?.roc_auc;
     return {
       countData: counts,
       scatterData: scatter,
       stats: [
-        { value: has ? String(reefs.length) : "—", label: "Reef systems analysed" },
+        { value: has ? String(reefs.length) : "—", label: "Reef sites analysed" },
         {
           value: has ? formatPercent(high / reefs.length) : "—",
           label: "High predicted resilience",
@@ -64,13 +64,16 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
           label: "Mean predicted probability",
         },
         {
-          value: has ? formatPercent(mean(reefs.map((r) => r.modelConfidence))) : "—",
-          label: "Mean model confidence",
+          value: auc != null ? auc.toFixed(2) : "—",
+          label:
+            baseAuc != null
+              ? `Model ROC AUC (vs ${baseAuc.toFixed(2)} for heat stress alone)`
+              : "Model ROC AUC",
         },
-        { value: String(ENVIRONMENTAL_VARIABLES.length), label: "Environmental predictors" },
+        { value: metrics ? String(metrics.features.length) : "—", label: "Model predictors" },
       ],
     };
-  }, [reefs]);
+  }, [reefs, metrics]);
 
   return (
     <section id="insights" className="scroll-mt-16 border-t border-border bg-muted/30">
@@ -81,9 +84,9 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
             Patterns across the global dataset
           </h2>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-            Aggregate, model-based patterns across the reef systems in this prototype. Predicted
-            resilience tends to decline as sea surface temperatures rise, consistent with heat
-            stress as a dominant driver in the model.
+            Model-based estimates for every mapped reef under its most recent 12 weeks of
+            satellite heat stress. The model is validated on surveys from ecoregions it never saw
+            during training, and compared against heat stress alone.
           </p>
         </div>
 
@@ -148,7 +151,8 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                     dataKey="sst"
                     name="SST"
                     unit="°C"
-                    domain={[24, 31]}
+                    domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                    tickFormatter={(v: number) => v.toFixed(0)}
                     tickLine={false}
                     axisLine={false}
                     tick={AXIS}
@@ -183,7 +187,8 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Illustrative mock data; patterns are model-based, not observed outcomes.
+          Heat stress: NOAA Coral Reef Watch. Patterns are model-based estimates, not observed
+          outcomes.
         </p>
       </div>
     </section>

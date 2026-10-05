@@ -9,8 +9,8 @@ export default function Footer() {
           </p>
         </div>
         <p className="max-w-sm text-xs leading-relaxed text-primary-foreground/75">
-          Prototype running on illustrative mock data. Predictions are model-based estimates and do
-          not prove that any reef is resilient.
+          Data: Global Coral-Bleaching Database (CC BY 4.0) and NOAA Coral Reef Watch. Predictions
+          are model-based estimates and do not prove that any reef is resilient.
         </p>
       </div>
     </footer>

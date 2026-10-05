@@ -21,7 +21,7 @@ export const CATEGORY_COLORS: Record<
 
 export const CATEGORY_ORDER: ResilienceCategory[] = ["High", "Medium", "Low"];
 
-/** Probability thresholds for the predicted-resilience bands. */
+/** Probability thresholds for the predicted-resilience bands (mirrors backend/main.py). */
 export const CATEGORY_THRESHOLDS = { high: 0.66, medium: 0.4 } as const;
 
 export function categoryFromProbability(p: number): ResilienceCategory {
@@ -83,12 +83,6 @@ export function insightCopy(category: ResilienceCategory): { title: string; body
   }
 }
 
-export function confidenceLabel(p: number): "High" | "Moderate" | "Limited" {
-  if (p >= 0.75) return "High";
-  if (p >= 0.6) return "Moderate";
-  return "Limited";
-}
-
 /** Largest positive contributions, strongest first. */
 export function topPositiveFactors(
   contributions: FeatureContribution[],
@@ -100,29 +94,29 @@ export function topPositiveFactors(
     .slice(0, n);
 }
 
-/** One-sentence, plain-language summary of a reef's environmental predictors. */
+/**
+ * One-sentence, plain-language summary of a reef's environmental predictors.
+ * Values missing from the source data are left out rather than guessed.
+ */
 export function environmentalSummary(m: EnvironmentalMetrics): string {
-  const depthClass = m.depth < 7 ? "Shallow" : m.depth > 15 ? "Deep" : "Mid-depth";
-  const coverClass = m.coralCover >= 50 ? "high" : m.coralCover >= 25 ? "moderate" : "low";
-  return (
-    `${depthClass} reef (${m.depth.toFixed(1)} m) with ${coverClass} coral cover (${m.coralCover}%), ` +
-    `${m.heatStress.toLowerCase()} heat stress and ${m.humanPressure.toLowerCase()} human pressure ` +
-    `at a mean SST of ${m.seaSurfaceTemp.toFixed(1)} °C.`
-  );
+  const reef =
+    m.depth == null
+      ? "Reef"
+      : `${m.depth < 7 ? "Shallow" : m.depth > 15 ? "Deep" : "Mid-depth"} reef (${m.depth.toFixed(1)} m)`;
+  const parts: string[] = [];
+  if (m.coralCover != null) {
+    const cover = m.coralCover >= 50 ? "high" : m.coralCover >= 25 ? "moderate" : "low";
+    parts.push(`${cover} coral cover (${Math.round(m.coralCover)}%)`);
+  }
+  if (m.heatStress && m.dhwMax12w != null) {
+    parts.push(
+      `${m.heatStress.toLowerCase()} accumulated heat stress (${m.dhwMax12w.toFixed(1)} DHW over 12 weeks)`,
+    );
+  }
+  let sentence = parts.length ? `${reef} with ${parts.join(" and ")}` : reef;
+  if (m.seaSurfaceTemp != null) sentence += ` at a mean SST of ${m.seaSurfaceTemp.toFixed(1)} °C`;
+  return `${sentence}.`;
 }
-
-/** The environmental predictors shown per reef, in display order. */
-export const ENVIRONMENTAL_VARIABLES: {
-  key: keyof EnvironmentalMetrics;
-  label: string;
-  unit?: string;
-}[] = [
-  { key: "seaSurfaceTemp", label: "Sea surface temperature", unit: "°C" },
-  { key: "coralCover", label: "Coral cover", unit: "%" },
-  { key: "depth", label: "Depth", unit: "m" },
-  { key: "heatStress", label: "Heat stress" },
-  { key: "humanPressure", label: "Human pressure" },
-];
 
 export const formatPercent = (p: number, digits = 0): string =>
   `${(p * 100).toFixed(digits)}%`;

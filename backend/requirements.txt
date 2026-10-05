@@ -1,2 +1,4 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
+# /api/predict scores live with the trained model via pipeline/inference.py
+-r ../pipeline/requirements.txt

@@ -1,12 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  confidenceLabel,
-  environmentalSummary,
-  formatPercent,
-  insightCopy,
-  topPositiveFactors,
-} from "@/lib/reef";
+import { environmentalSummary, insightCopy, topPositiveFactors } from "@/lib/reef";
 import type { Reef, ReefExplanation } from "@/types/reef";
 
 interface ReefInsightProps {
@@ -26,7 +20,6 @@ function Label({ children }: { children: string }) {
 export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
   const copy = insightCopy(explanation.category);
   const factors = topPositiveFactors(explanation.contributions);
-  const confidence = explanation.confidence;
 
   return (
     <section>
@@ -39,27 +32,27 @@ export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{explanation.summary}</p>
 
       <div className="mt-5 space-y-5 border-t border-border pt-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <Label>Model confidence</Label>
-            <span className="text-xs font-medium tabular-nums text-foreground">
-              {formatPercent(confidence)}
-              <span className="ml-1.5 font-normal text-muted-foreground">
-                {confidenceLabel(confidence)}
-              </span>
-            </span>
+        {(reef.asOf || reef.nearestSurveyKm != null) && (
+          <div>
+            <Label>Data support</Label>
+            <dl className="mt-2 space-y-1.5 text-xs">
+              {reef.asOf && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Satellite heat stress as of</dt>
+                  <dd className="font-medium tabular-nums text-foreground">{reef.asOf}</dd>
+                </div>
+              )}
+              {reef.nearestSurveyKm != null && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Nearest survey data</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {reef.nearestSurveyKm} km away
+                  </dd>
+                </div>
+              )}
+            </dl>
           </div>
-          <div
-            role="img"
-            aria-label={`Model confidence ${formatPercent(confidence)}`}
-            className="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted"
-          >
-            <div
-              className="h-full rounded-full bg-brand transition-all duration-500"
-              style={{ width: formatPercent(confidence) }}
-            />
-          </div>
-        </div>
+        )}
 
         {factors.length > 0 && (
           <div>

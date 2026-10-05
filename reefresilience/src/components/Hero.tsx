@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 
 interface HeroProps {
   onExplore: () => void;
-  /** Null while the dataset is loading. */
+  /** Null while the data is loading or unavailable. */
   reefCount: number | null;
-  basinCount: number | null;
-  predictorCount: number;
+  surveyCount: number | null;
+  predictorCount: number | null;
 }
 
 /** A thin, branching coral-like line motif, drawn from a base point. */
@@ -75,11 +75,11 @@ function ReefBackground() {
   );
 }
 
-export default function Hero({ onExplore, reefCount, basinCount, predictorCount }: HeroProps) {
+export default function Hero({ onExplore, reefCount, surveyCount, predictorCount }: HeroProps) {
   const stats = [
-    { value: reefCount, label: "Reef systems" },
-    { value: basinCount, label: "Ocean basins" },
-    { value: predictorCount, label: "Environmental predictors" },
+    { value: reefCount, label: "Reef sites" },
+    { value: surveyCount?.toLocaleString() ?? null, label: "Training surveys" },
+    { value: predictorCount, label: "Model predictors" },
   ];
 
   return (
@@ -111,6 +111,9 @@ export default function Hero({ onExplore, reefCount, basinCount, predictorCount 
             </Button>
             <p className="text-sm text-muted-foreground">
               Powered by environmental and ecological data
+              <span className="block text-xs">
+                Global Coral-Bleaching Database · NOAA Coral Reef Watch
+              </span>
             </p>
           </div>
 

@@ -4,12 +4,12 @@ const POINTS = [
   {
     icon: Database,
     title: "Environmental & ecological data",
-    body: "Each reef is characterised by predictors such as sea surface temperature, accumulated heat stress, coral cover, depth and human pressure.",
+    body: "Each reef is characterised by predictors such as accumulated heat stress (Degree Heating Weeks), sea temperature anomalies, turbidity, depth, wave exposure and cyclone frequency.",
   },
   {
     icon: LineChart,
     title: "Model-based estimates",
-    body: "A classifier estimates the probability of high climate resilience and reports the contribution of each predictor, so every estimate is explainable.",
+    body: "A gradient-boosted classifier estimates the chance a reef avoids significant bleaching (10% or more of colonies) and reports each predictor's contribution, so every estimate is explainable.",
   },
   {
     icon: ShieldCheck,
@@ -35,9 +35,11 @@ export default function AboutSection() {
               model-based predictions.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              This is an early prototype running on illustrative mock data. The frontend is designed
-              so the mock layer can be replaced by a live scientific backend without changes to the
-              interface.
+              Bleaching labels and reef conditions come from the Global Coral-Bleaching Database
+              (van Woesik &amp; Kratochwill 2022, CC BY 4.0); live heat stress comes from NOAA Coral
+              Reef Watch daily 5 km satellite products. Training heat metrics (CoRTAD) and live
+              ones (Coral Reef Watch) are related but distinct products, and non-heat conditions
+              for each reef are borrowed from the nearest surveyed reefs.
             </p>
           </div>
 

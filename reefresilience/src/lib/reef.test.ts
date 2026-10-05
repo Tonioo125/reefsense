@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CATEGORY_THRESHOLDS,
-  ENVIRONMENTAL_VARIABLES,
   categoryFromProbability,
   categoryRangeLabel,
-  confidenceLabel,
   environmentalSummary,
   explanationHeading,
   formatPercent,
@@ -59,27 +57,21 @@ describe("category copy", () => {
     expect(insightCopy("Low").title).toBe("Limited resilience potential");
   });
 
-  it("labels model confidence", () => {
-    expect(confidenceLabel(0.84)).toBe("High");
-    expect(confidenceLabel(0.75)).toBe("High");
-    expect(confidenceLabel(0.6)).toBe("Moderate");
-    expect(confidenceLabel(0.59)).toBe("Limited");
-  });
 });
 
 describe("topPositiveFactors", () => {
   it("returns the largest positive contributions first", () => {
     const result = topPositiveFactors([
-      { feature: "Depth", contribution: 0.08 },
-      { feature: "Human pressure", contribution: -0.04 },
-      { feature: "Coral cover", contribution: 0.21 },
-      { feature: "Reef connectivity", contribution: 0.12 },
-      { feature: "Lower heat stress", contribution: 0.17 },
+      { feature: "Reef depth", contribution: 0.08 },
+      { feature: "Accumulated heat stress (DHW)", contribution: -1.98 },
+      { feature: "Wave exposure", contribution: 0.21 },
+      { feature: "Distance to shore", contribution: 0.12 },
+      { feature: "Water clarity (turbidity)", contribution: 0.17 },
     ]);
     expect(result.map((f) => f.feature)).toEqual([
-      "Coral cover",
-      "Lower heat stress",
-      "Reef connectivity",
+      "Wave exposure",
+      "Water clarity (turbidity)",
+      "Distance to shore",
     ]);
   });
 
@@ -94,41 +86,34 @@ describe("topPositiveFactors", () => {
 });
 
 describe("environmentalSummary", () => {
-  it("summarises Palau exactly", () => {
+  it("summarises a reef with full data (Florida Keys, scored 2026-10-03)", () => {
     expect(
       environmentalSummary({
-        seaSurfaceTemp: 28.4,
-        coralCover: 72,
-        depth: 8.2,
-        heatStress: "Low",
-        humanPressure: "Low",
+        seaSurfaceTemp: 30.75,
+        coralCover: 14,
+        depth: 5.2,
+        dhwMax12w: 19.07,
+        heatStress: "High",
       }),
     ).toBe(
-      "Mid-depth reef (8.2 m) with high coral cover (72%), low heat stress and low human pressure at a mean SST of 28.4 °C.",
+      "Shallow reef (5.2 m) with low coral cover (14%) and high accumulated heat stress (19.1 DHW over 12 weeks) at a mean SST of 30.8 °C.",
     );
   });
 
-  it("classifies shallow, low-cover reefs", () => {
+  it("leaves out values missing from the source data instead of guessing", () => {
     expect(
       environmentalSummary({
-        seaSurfaceTemp: 30.1,
-        coralCover: 14,
-        depth: 6.4,
+        seaSurfaceTemp: 30.75,
+        coralCover: null,
+        depth: 5.2,
+        dhwMax12w: 19.07,
         heatStress: "High",
-        humanPressure: "High",
       }),
-    ).toMatch(/^Shallow reef \(6\.4 m\) with low coral cover \(14%\), high heat stress/);
-  });
-});
-
-describe("ENVIRONMENTAL_VARIABLES", () => {
-  it("lists the five predictors in spec order", () => {
-    expect(ENVIRONMENTAL_VARIABLES.map((v) => v.label)).toEqual([
-      "Sea surface temperature",
-      "Coral cover",
-      "Depth",
-      "Heat stress",
-      "Human pressure",
-    ]);
+    ).toBe(
+      "Shallow reef (5.2 m) with high accumulated heat stress (19.1 DHW over 12 weeks) at a mean SST of 30.8 °C.",
+    );
+    expect(
+      environmentalSummary({ seaSurfaceTemp: null, coralCover: null, depth: null, heatStress: null }),
+    ).toBe("Reef.");
   });
 });

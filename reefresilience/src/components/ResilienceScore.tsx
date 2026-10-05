@@ -48,7 +48,9 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-        Model prediction based on environmental and ecological predictors.
+        Model prediction based on environmental and ecological predictors. It is the estimated
+        chance the reef avoids bleaching of 10% or more of its colonies under recent satellite
+        heat stress.
       </p>
     </div>
   );
