@@ -3,10 +3,31 @@ import { Button } from "@/components/ui/button";
 
 interface HeroProps {
   onExplore: () => void;
+  /** Null while the dataset is loading. */
+  reefCount: number | null;
+  basinCount: number | null;
+  predictorCount: number;
 }
 
-/** Subtle bathymetric contour lines — scientific texture, not decoration. */
-function ContourBackground() {
+/** A thin, branching coral-like line motif, drawn from a base point. */
+function CoralBranch({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      <path d="M0 0 C 2 -40, -6 -80, 4 -120 S 22 -170, 16 -210" />
+      <path d="M2 -70 C 22 -86, 30 -112, 52 -128 S 70 -150, 66 -172" />
+      <path d="M-2 -46 C -22 -62, -34 -84, -58 -96 S -82 -122, -78 -146" />
+      <path d="M8 -132 C 24 -146, 34 -160, 30 -184" />
+      <path d="M38 -116 C 52 -116, 66 -124, 80 -138" />
+      <path d="M-40 -88 C -52 -96, -66 -100, -84 -98" />
+    </g>
+  );
+}
+
+/**
+ * Subtle ocean / reef texture: bathymetric contours, a faint depth band rising
+ * from the bottom and a few fine coral line motifs. Pure SVG, no images.
+ */
+function ReefBackground() {
   return (
     <svg
       aria-hidden="true"
@@ -16,11 +37,17 @@ function ContourBackground() {
     >
       <defs>
         <radialGradient id="reef-glow" cx="78%" cy="28%" r="60%">
-          <stop offset="0%" stopColor="hsl(184 52% 34%)" stopOpacity="0.1" />
+          <stop offset="0%" stopColor="hsl(184 52% 34%)" stopOpacity="0.09" />
           <stop offset="100%" stopColor="hsl(184 52% 34%)" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id="depth-band" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(184 52% 34%)" stopOpacity="0" />
+          <stop offset="100%" stopColor="hsl(184 52% 34%)" stopOpacity="0.06" />
+        </linearGradient>
       </defs>
       <rect width="1200" height="700" fill="url(#reef-glow)" />
+      <rect y="420" width="1200" height="280" fill="url(#depth-band)" />
+
       <g
         fill="none"
         stroke="hsl(160 38% 15%)"
@@ -32,21 +59,39 @@ function ContourBackground() {
           <ellipse key={r} rx={r} ry={r * 0.72} transform={`rotate(${-18 + i * 2})`} />
         ))}
       </g>
+
+      <g
+        fill="none"
+        stroke="hsl(184 52% 28%)"
+        strokeOpacity="0.08"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      >
+        <CoralBranch x={1010} y={700} scale={1.05} />
+        <CoralBranch x={1120} y={710} scale={0.75} />
+        <CoralBranch x={900} y={715} scale={0.6} />
+      </g>
     </svg>
   );
 }
 
-export default function Hero({ onExplore }: HeroProps) {
+export default function Hero({ onExplore, reefCount, basinCount, predictorCount }: HeroProps) {
+  const stats = [
+    { value: reefCount, label: "Reef systems" },
+    { value: basinCount, label: "Ocean basins" },
+    { value: predictorCount, label: "Environmental predictors" },
+  ];
+
   return (
     <section
       id="top"
       className="relative flex min-h-[calc(100vh-4rem)] items-center overflow-hidden"
     >
-      <ContourBackground />
+      <ReefBackground />
       <div className="relative mx-auto w-full max-w-[1240px] px-6">
         <div className="max-w-2xl animate-fade-in py-20">
           <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-brand">
-            <span className="h-px w-8 bg-brand/60" />
+            <span className="h-px w-8 bg-brand/60" aria-hidden="true" />
             AI-powered reef intelligence
           </p>
 
@@ -70,15 +115,13 @@ export default function Hero({ onExplore }: HeroProps) {
           </div>
 
           <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-4 border-t border-border/70 pt-6">
-            {[
-              { value: "16", label: "Reef systems" },
-              { value: "5", label: "Ocean basins" },
-              { value: "Model-based", label: "Probability estimates" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <dt className="font-display text-2xl font-medium text-foreground">{stat.value}</dt>
-                <dd className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+            {stats.map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse">
+                <dt className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">
                   {stat.label}
+                </dt>
+                <dd className="font-display text-2xl font-medium tabular-nums text-foreground">
+                  {stat.value ?? "—"}
                 </dd>
               </div>
             ))}
