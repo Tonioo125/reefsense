@@ -72,6 +72,7 @@ export default function FeatureContributions({
           <span className="h-2 w-2 rounded-full" style={{ background: NEGATIVE }} />
           Lowers it
         </span>
+        <span className="ml-auto">log-odds</span>
       </div>
     </section>
   );

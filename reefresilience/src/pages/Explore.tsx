@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
-import { listReefs } from "@/api/client";
+import { getModelMetrics, listReefs } from "@/api/client";
 import AboutSection from "@/components/AboutSection";
 import Hero from "@/components/Hero";
 import InsightsSection from "@/components/InsightsSection";
@@ -10,7 +10,7 @@ import ReefAnalysisPanel from "@/components/ReefAnalysisPanel";
 import ResilienceMap from "@/components/ResilienceMap";
 import { scrollToSection } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
-import type { Reef, ReefFilter } from "@/types/reef";
+import type { ModelMetrics, Reef, ReefFilter } from "@/types/reef";
 
 function PanelEmptyState() {
   return (
@@ -60,6 +60,7 @@ function BottomSheet({ reef, onClose }: { reef: Reef | null; onClose: () => void
 
 export default function Explore() {
   const [reefs, setReefs] = useState<Reef[]>([]);
+  const [metrics, setMetrics] = useState<ModelMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -67,16 +68,17 @@ export default function Explore() {
 
   useEffect(() => {
     let active = true;
-    listReefs()
-      .then((data) => {
+    Promise.all([listReefs(), getModelMetrics().catch(() => null)])
+      .then(([data, m]) => {
         if (active) {
           setReefs(data);
+          setMetrics(m);
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((e: Error) => {
         if (active) {
-          setError("Could not load the reef dataset.");
+          setError(e.message);
           setLoading(false);
         }
       });
@@ -104,7 +106,11 @@ export default function Explore() {
 
   return (
     <>
-      <Hero onExplore={() => scrollToSection("explore")} />
+      <Hero
+        onExplore={() => scrollToSection("explore")}
+        reefCount={reefs.length || null}
+        surveyCount={metrics?.n_rows ?? null}
+      />
 
       <section id="explore" className="scroll-mt-16">
         <div className="relative isolate flex flex-col lg:h-[calc(100vh-4rem)] lg:min-h-[600px] lg:flex-row">
@@ -129,9 +135,13 @@ export default function Explore() {
 
             {error && (
               <div className="absolute inset-0 z-[1000] flex items-center justify-center p-6">
-                <p className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground shadow-float">
-                  {error}
-                </p>
+                <div className="max-w-sm rounded-lg border border-border bg-background px-5 py-4 text-sm shadow-float">
+                  <p className="font-medium text-foreground">{error}</p>
+                  <p className="mt-1.5 leading-relaxed text-muted-foreground">
+                    Start it with <code className="text-foreground">uvicorn main:app --port 8000</code>{" "}
+                    in <code className="text-foreground">backend/</code>.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -150,7 +160,7 @@ export default function Explore() {
         <BottomSheet reef={selected} onClose={() => setSelectedId(null)} />
       </section>
 
-      <InsightsSection reefs={reefs} />
+      <InsightsSection reefs={reefs} metrics={metrics} />
       <AboutSection />
     </>
   );

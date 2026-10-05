@@ -2,7 +2,7 @@
 
 **Near-term coral bleaching outlook and restoration priorities for Indonesian reefs.**
 
-> Status: hackathon build in progress. Numbers marked `TBD` are filled in from `data/processed/model_metrics.json` once the model is trained on real data.
+> Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefResilience web app in `reefresilience/` is the main frontend.
 
 ## The problem
 
@@ -26,20 +26,25 @@ Allen Coral Atlas / MERMAID / 50 Reefs+ (context)   ──┘                   
 
 | Component | Approach |
 |---|---|
-| Label | Bleaching ≥ 10% of colonies (GCBD survey records) |
+| Label | Bleaching ≥ 10% of colonies (GCBD survey records; see below) |
 | Model | LightGBM classifier, class-balanced |
 | Validation | Grouped k-fold by ecoregion (spatial), not a random split |
 | Baseline | DHW alone, plus NOAA-style DHW ≥ 4 and ≥ 8 rules |
 | Explanations | LightGBM per-feature contributions (SHAP-equivalent) |
 | Ranking | Weighted multi-criteria score; missing criteria excluded per site |
 
+Percent bleaching per survey is taken, in order of preference, from the recorded percent of colonies bleached (8,947 surveys), the mean of Reef Check's four population-level transect segments (11,297), or the midpoint of a coarse severity code (2,942). See `pipeline/01b_import_gcbd_sqlite.py`.
+
 ### Results
 
-| | ROC AUC | PR AUC |
-|---|---|---|
-| ReefCast model | TBD | TBD |
-| Heat stress (DHW) alone | TBD | n/a |
-| Indonesia subset | TBD | n/a |
+Out-of-fold scores from 5-fold cross-validation grouped by ecoregion (each fold tests on ecoregions the model never saw).
+
+| Model | Training rows | Bleached | ROC AUC | PR AUC | DHW alone, ROC AUC | Indonesia, ROC AUC |
+|---|---|---|---|---|---|---|
+| Global (served by the API) | 23,186 | 27.8% | **0.754** | 0.563 | 0.677 | 0.715 (n = 937) |
+| Coral Triangle | 3,778 | 11.5% | **0.724** | 0.373 | 0.675 | 0.733 (n = 937) |
+
+The NOAA-style rule "DHW ≥ 4" catches only 26% of bleaching events globally (22% in the Coral Triangle), which supports the premise above: most recorded bleaching happens below the heat level at which standard alerts escalate.
 
 ## Data sources
 
@@ -57,10 +62,11 @@ Allen Coral Atlas / MERMAID / 50 Reefs+ (context)   ──┘                   
 # 1. Pipeline (Python 3.11+)
 python -m venv .venv && source .venv/bin/activate
 pip install -r pipeline/requirements.txt
-python pipeline/01_fetch_gcbd.py          # labels
+python pipeline/01b_import_gcbd_sqlite.py # labels, from the GCBD SQLite placed in data/raw/
+#   (or: python pipeline/01_fetch_gcbd.py  # ERDDAP download, when the BCO-DMO server is up)
 python pipeline/00_check_feasibility.py   # go/no-go on Indonesian label counts
-python pipeline/02_fetch_crw.py --days 180
-python pipeline/03_train_bleaching.py --region coral_triangle
+python pipeline/02_fetch_crw.py --days 180  # ~30 s per site via the NOAA/PacIOOS ERDDAP mirror
+python pipeline/03_train_bleaching.py --region global
 python pipeline/04_score_sites.py         # writes data/processed/sites_scored.json
 
 # 2. API
@@ -68,15 +74,20 @@ pip install -r backend/requirements.txt
 cd backend && uvicorn main:app --reload --port 8000
 
 # 3. Frontend (Node 18+)
-cd frontend && npm install && npm run dev   # http://localhost:5173
+cd reefresilience && npm install && npm run dev   # http://localhost:5173
+# The original single-panel UI is still in frontend/ and uses the same API.
 ```
+
+API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/explanation`, `POST /api/predict`, `GET /api/model`, plus the original `GET /api/sites` and `GET /api/ranking`.
 
 Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugia_50reefs_plus` (0/1), `connectivity` and `in_mpa` (0/1).
 
 ## Limitations
 
 - Training heat metrics in GCBD come from CoRTAD; live inputs come from NOAA CRW. Both measure accumulated heat stress, but they are different products.
-- Satellite pixels are 5 km; individual reefs vary within a pixel. Coastal sites may need nudging offshore to avoid land-masked pixels.
+- Satellite pixels are 5 km; individual reefs vary within a pixel. When a coastal reef's pixel is masked as land, the nearest ocean pixel within 0.25° is used.
+- ReefResilience reports "probability of high climate resilience" as 1 − P(bleaching ≥ 10%) under the past 12 weeks of heat stress. It is a near-term resistance estimate, not a long-term projection.
+- Labels mix three survey methods; severity-code labels are coarse (banded) values.
 - Non-heat conditions for each site are borrowed from the nearest surveyed reefs.
 - GCBD records cluster around the 2015–2016 global bleaching event.
 - The ranking supports decisions; it does not replace field assessment by restoration teams.
@@ -86,6 +97,7 @@ Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugi
 ```
 pipeline/   data download, feasibility check, training, scoring
 backend/    FastAPI service (sites, model metrics, ranking)
-frontend/   React + Leaflet app
+reefresilience/  ReefResilience web app (React + TypeScript + Leaflet + Recharts)
+frontend/   original React + Leaflet app
 data/       raw (git-ignored), processed outputs, demo site list
 ```

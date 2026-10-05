@@ -4,7 +4,6 @@ import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
 import ResilienceScore from "@/components/ResilienceScore";
 import { Button } from "@/components/ui/button";
-import { formatPercent } from "@/lib/reef";
 import type { Reef } from "@/types/reef";
 
 interface ReefAnalysisPanelProps {
@@ -27,18 +26,22 @@ function InsightBlock({ reef }: { reef: Reef }) {
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{reef.insight}</p>
 
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Model confidence</span>
-          <span className="font-medium tabular-nums">{formatPercent(reef.modelConfidence)}</span>
-        </div>
-        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-background">
-          <div
-            className="h-full rounded-full bg-brand transition-all duration-500"
-            style={{ width: formatPercent(reef.modelConfidence) }}
-          />
-        </div>
-      </div>
+      {(reef.nearestSurveyKm != null || reef.asOf) && (
+        <dl className="mt-4 space-y-1.5 text-xs">
+          {reef.asOf && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Satellite heat stress as of</dt>
+              <dd className="font-medium tabular-nums">{reef.asOf}</dd>
+            </div>
+          )}
+          {reef.nearestSurveyKm != null && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Nearest survey data</dt>
+              <dd className="font-medium tabular-nums">{reef.nearestSurveyKm} km away</dd>
+            </div>
+          )}
+        </dl>
+      )}
 
       {topFactors.length > 0 && (
         <div className="mt-4">

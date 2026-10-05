@@ -16,12 +16,6 @@ export const CATEGORY_COLORS: Record<
 
 export const CATEGORY_ORDER: ResilienceCategory[] = ["High", "Medium", "Low"];
 
-export function categoryFromProbability(p: number): ResilienceCategory {
-  if (p >= 0.66) return "High";
-  if (p >= 0.4) return "Medium";
-  return "Low";
-}
-
 /** Scientific, non-overclaiming label for a prediction band. */
 export function resilienceLabel(category: ResilienceCategory): string {
   switch (category) {

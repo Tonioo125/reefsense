@@ -14,7 +14,7 @@ GCBD_RAW = RAW / "gcbd.csv"
 
 # NOAA Coral Reef Watch v3.1 daily 5 km (1985-present) via ERDDAP griddap
 CRW_ERDDAP = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW"
-CRW_VARIABLES = ["CRW_DHW", "CRW_SSTANOMALY", "CRW_BAA"]
+CRW_VARIABLES = ["CRW_DHW", "CRW_SSTANOMALY", "CRW_BAA", "CRW_SST"]
 
 # --- Files produced by the pipeline -------------------------------------
 SITES_CSV = SITES_DIR / "demo_sites.csv"

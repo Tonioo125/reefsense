@@ -40,11 +40,13 @@ def main():
         raise SystemExit("No usable features found; check column names in config.py.")
     X = df[features]
 
+    cells = df["lat"].round(0).astype(str) + "_" + df["lon"].round(0).astype(str)
     if "group" in df and df["group"].nunique() >= 5:
-        groups = df["group"].astype(str)
+        # Rows without an ecoregion fall back to their 1-degree cell (pandas 3 keeps NaN through astype(str)).
+        groups = df["group"].astype(str).fillna("cell_" + cells)
         group_desc = "ecoregion"
     else:
-        groups = df["lat"].round(0).astype(str) + "_" + df["lon"].round(0).astype(str)
+        groups = cells
         group_desc = "1-degree cell"
     n_splits = min(5, groups.nunique())
     print(f"{len(df):,} labelled rows, {y.mean():.1%} bleached, {len(features)} features, "

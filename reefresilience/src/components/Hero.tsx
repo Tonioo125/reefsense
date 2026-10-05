@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 
 interface HeroProps {
   onExplore: () => void;
+  reefCount: number | null;
+  surveyCount: number | null;
 }
 
 /** Subtle bathymetric contour lines — scientific texture, not decoration. */
@@ -36,7 +38,13 @@ function ContourBackground() {
   );
 }
 
-export default function Hero({ onExplore }: HeroProps) {
+export default function Hero({ onExplore, reefCount, surveyCount }: HeroProps) {
+  const stats = [
+    { value: reefCount == null ? "—" : String(reefCount), label: "Reef sites" },
+    { value: surveyCount == null ? "—" : surveyCount.toLocaleString(), label: "Training surveys" },
+    { value: "Model-based", label: "Probability estimates" },
+  ];
+
   return (
     <section
       id="top"
@@ -66,15 +74,14 @@ export default function Hero({ onExplore }: HeroProps) {
             </Button>
             <p className="text-sm text-muted-foreground">
               Powered by environmental and ecological data
+              <span className="block text-xs">
+                Global Coral-Bleaching Database · NOAA Coral Reef Watch
+              </span>
             </p>
           </div>
 
           <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-4 border-t border-border/70 pt-6">
-            {[
-              { value: "16", label: "Reef systems" },
-              { value: "5", label: "Ocean basins" },
-              { value: "Model-based", label: "Probability estimates" },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div key={stat.label}>
                 <dt className="font-display text-2xl font-medium text-foreground">{stat.value}</dt>
                 <dd className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">

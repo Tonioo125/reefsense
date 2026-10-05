@@ -12,10 +12,11 @@ import {
   YAxis,
 } from "recharts";
 import { CATEGORY_COLORS, CATEGORY_ORDER, formatPercent } from "@/lib/reef";
-import type { Reef } from "@/types/reef";
+import type { ModelMetrics, Reef } from "@/types/reef";
 
 interface InsightsSectionProps {
   reefs: Reef[];
+  metrics: ModelMetrics | null;
 }
 
 const AXIS = { fill: "hsl(155 9% 42%)", fontSize: 11 };
@@ -27,24 +28,27 @@ const tooltipStyle = {
   boxShadow: "0 10px 30px -18px rgba(16,40,34,0.35)",
 };
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, note }: { value: string; label: string; note?: string }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="font-display text-3xl font-medium text-foreground">{value}</div>
       <div className="mt-1 text-sm text-muted-foreground">{label}</div>
+      {note && <div className="mt-1 text-xs text-muted-foreground/80">{note}</div>}
     </div>
   );
 }
 
-export default function InsightsSection({ reefs }: InsightsSectionProps) {
+export default function InsightsSection({ reefs, metrics }: InsightsSectionProps) {
+  const auc = metrics?.model.roc_auc;
+  const baseAuc = metrics?.baseline_dhw?.roc_auc;
   const { countData, scatterData, meanProb, highShare } = useMemo(() => {
     const counts = CATEGORY_ORDER.map((category) => ({
       category,
       count: reefs.filter((r) => r.category === category).length,
       color: CATEGORY_COLORS[category].base,
     }));
-    const scatter = reefs.map((r) => ({
-      sst: r.metrics.seaSurfaceTemp,
+    const scatter = reefs.filter((r) => r.metrics.seaSurfaceTemp != null).map((r) => ({
+      sst: Number(r.metrics.seaSurfaceTemp!.toFixed(1)),
       prob: Math.round(r.resilienceProbability * 100),
       name: r.name,
       color: CATEGORY_COLORS[r.category].base,
@@ -70,17 +74,25 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
             Patterns across the global dataset
           </h2>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-            Aggregate, model-based patterns across the reef systems in this prototype. Predicted
-            resilience tends to decline as sea surface temperatures rise — consistent with heat
-            stress as a dominant driver.
+            Model-based estimates for every mapped reef under its most recent 12 weeks of
+            satellite heat stress. The model is validated on surveys from ecoregions it never saw
+            during training, and compared against heat stress alone.
           </p>
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat value={String(reefs.length)} label="Reef systems analysed" />
+          <Stat value={String(reefs.length)} label="Reef sites analysed" />
           <Stat value={formatPercent(highShare)} label="High predicted resilience" />
           <Stat value={formatPercent(meanProb)} label="Mean predicted probability" />
-          <Stat value="5" label="Environmental predictors" />
+          {auc != null ? (
+            <Stat
+              value={auc.toFixed(2)}
+              label="Model ROC AUC"
+              note={baseAuc != null ? `vs ${baseAuc.toFixed(2)} for heat stress alone` : undefined}
+            />
+          ) : (
+            <Stat value="—" label="Model ROC AUC" note="Available with the live API" />
+          )}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -126,7 +138,8 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                     dataKey="sst"
                     name="SST"
                     unit="°C"
-                    domain={[25, 31]}
+                    domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                    tickFormatter={(v: number) => v.toFixed(0)}
                     tickLine={false}
                     axisLine={false}
                     tick={AXIS}
