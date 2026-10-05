@@ -4,11 +4,11 @@ export default function Footer() {
       <div className="mx-auto flex max-w-[1240px] flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-lg font-medium">ReefResilience</p>
-          <p className="mt-1 text-sm text-primary-foreground/70">
+          <p className="mt-1 text-sm text-primary-foreground/80">
             AI-powered insight into coral reef climate resilience.
           </p>
         </div>
-        <p className="max-w-sm text-xs leading-relaxed text-primary-foreground/60">
+        <p className="max-w-sm text-xs leading-relaxed text-primary-foreground/75">
           Prototype running on illustrative mock data. Predictions are model-based estimates and do
           not prove that any reef is resilient.
         </p>

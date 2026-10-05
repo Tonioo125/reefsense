@@ -41,14 +41,11 @@ export default function AboutSection() {
             </p>
           </div>
 
-          <ul className="space-y-5">
+          <ul className="divide-y divide-border border-y border-border">
             {POINTS.map((p) => (
-              <li
-                key={p.title}
-                className="flex gap-4 rounded-lg border border-border bg-card p-5"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-primary">
-                  <p.icon className="h-5 w-5" strokeWidth={1.75} />
+              <li key={p.title} className="flex gap-4 py-6">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-brand">
+                  <p.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
                 </span>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">{p.title}</h3>

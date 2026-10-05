@@ -11,7 +11,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CATEGORY_COLORS, CATEGORY_ORDER, formatPercent } from "@/lib/reef";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_ORDER,
+  ENVIRONMENTAL_VARIABLES,
+  formatPercent,
+} from "@/lib/reef";
 import type { Reef } from "@/types/reef";
 
 interface InsightsSectionProps {
@@ -27,17 +32,11 @@ const tooltipStyle = {
   boxShadow: "0 10px 30px -18px rgba(16,40,34,0.35)",
 };
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="font-display text-3xl font-medium text-foreground">{value}</div>
-      <div className="mt-1 text-sm text-muted-foreground">{label}</div>
-    </div>
-  );
-}
+const mean = (values: number[]) =>
+  values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
 
 export default function InsightsSection({ reefs }: InsightsSectionProps) {
-  const { countData, scatterData, meanProb, highShare } = useMemo(() => {
+  const { countData, scatterData, stats } = useMemo(() => {
     const counts = CATEGORY_ORDER.map((category) => ({
       category,
       count: reefs.filter((r) => r.category === category).length,
@@ -49,15 +48,27 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
       name: r.name,
       color: CATEGORY_COLORS[r.category].base,
     }));
-    const mean = reefs.length
-      ? reefs.reduce((s, r) => s + r.resilienceProbability, 0) / reefs.length
-      : 0;
     const high = reefs.filter((r) => r.category === "High").length;
+    const has = reefs.length > 0;
     return {
       countData: counts,
       scatterData: scatter,
-      meanProb: mean,
-      highShare: reefs.length ? high / reefs.length : 0,
+      stats: [
+        { value: has ? String(reefs.length) : "—", label: "Reef systems analysed" },
+        {
+          value: has ? formatPercent(high / reefs.length) : "—",
+          label: "High predicted resilience",
+        },
+        {
+          value: has ? formatPercent(mean(reefs.map((r) => r.resilienceProbability))) : "—",
+          label: "Mean predicted probability",
+        },
+        {
+          value: has ? formatPercent(mean(reefs.map((r) => r.modelConfidence))) : "—",
+          label: "Mean model confidence",
+        },
+        { value: String(ENVIRONMENTAL_VARIABLES.length), label: "Environmental predictors" },
+      ],
     };
   }, [reefs]);
 
@@ -71,24 +82,32 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
           </h2>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
             Aggregate, model-based patterns across the reef systems in this prototype. Predicted
-            resilience tends to decline as sea surface temperatures rise — consistent with heat
-            stress as a dominant driver.
+            resilience tends to decline as sea surface temperatures rise, consistent with heat
+            stress as a dominant driver in the model.
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat value={String(reefs.length)} label="Reef systems analysed" />
-          <Stat value={formatPercent(highShare)} label="High predicted resilience" />
-          <Stat value={formatPercent(meanProb)} label="Mean predicted probability" />
-          <Stat value="5" label="Environmental predictors" />
-        </div>
+        <dl className="mt-10 grid grid-cols-2 gap-y-6 border-y border-border py-6 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-border">
+          {stats.map((s) => (
+            <div key={s.label} className="flex flex-col-reverse lg:px-6 lg:first:pl-0">
+              <dt className="mt-1 text-sm text-muted-foreground">{s.label}</dt>
+              <dd className="font-display text-3xl font-medium tabular-nums text-foreground">
+                {s.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h3 className="text-sm font-semibold text-foreground">Reefs by resilience category</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Distribution of predicted categories
-            </p>
+        <div className="mt-8 grid grid-cols-1 rounded-lg border border-border bg-card lg:grid-cols-2 lg:divide-x lg:divide-border">
+          <figure className="p-6">
+            <figcaption>
+              <h3 className="text-sm font-semibold text-foreground">
+                Reefs by predicted resilience category
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Number of reef systems in each predicted band
+              </p>
+            </figcaption>
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={countData} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
@@ -108,15 +127,18 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </figure>
 
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h3 className="text-sm font-semibold text-foreground">
-              Heat exposure vs predicted resilience
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Sea surface temperature (°C) against predicted probability (%)
-            </p>
+          <figure className="border-t border-border p-6 lg:border-t-0">
+            <figcaption>
+              <h3 className="text-sm font-semibold text-foreground">
+                Heat exposure vs predicted resilience
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sea surface temperature (°C) against predicted probability of high climate
+                resilience (%)
+              </p>
+            </figcaption>
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 4, right: 12, bottom: 4, left: -18 }}>
@@ -126,7 +148,7 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                     dataKey="sst"
                     name="SST"
                     unit="°C"
-                    domain={[25, 31]}
+                    domain={[24, 31]}
                     tickLine={false}
                     axisLine={false}
                     tick={AXIS}
@@ -134,7 +156,7 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                   <YAxis
                     type="number"
                     dataKey="prob"
-                    name="Resilience"
+                    name="Predicted probability"
                     unit="%"
                     domain={[0, 100]}
                     tickLine={false}
@@ -146,7 +168,7 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                     contentStyle={tooltipStyle}
                     formatter={(value: number, name: string) => [
                       name === "SST" ? `${value} °C` : `${value}%`,
-                      name === "SST" ? "Sea surface temp" : "Predicted resilience",
+                      name === "SST" ? "Sea surface temp" : "Predicted probability",
                     ]}
                   />
                   <Scatter data={scatterData}>
@@ -157,8 +179,12 @@ export default function InsightsSection({ reefs }: InsightsSectionProps) {
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </figure>
         </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Illustrative mock data; patterns are model-based, not observed outcomes.
+        </p>
       </div>
     </section>
   );
