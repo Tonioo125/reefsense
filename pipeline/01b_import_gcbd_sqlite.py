@@ -8,6 +8,10 @@ records. Percent bleaching is taken, in order of preference, from:
   2. Reef Check population-level segments: mean of S1-S4 (percent of the coral population bleached).
      Colony-level segments describe how bleached a colony is, not how many colonies, so are not used.
   3. Severity_Code, mapped to the midpoint of its band (coarse; recorded in label_source).
+
+Hard coral cover per sample (Hard_Coral_Cover, percent) is taken from Percent_Hard_Coral, or else the mean
+of Reef Check's four hard-coral transect segments as converted to percent by the database itself
+(Subquery_6_Calculated_Reef_Check_Segments: 40 points per segment).
 """
 import argparse
 import sqlite3
@@ -62,6 +66,21 @@ def bleaching_per_sample(con):
     return per[["Percent_Bleaching", "label_source"]].reset_index()
 
 
+def coral_cover_per_sample(con):
+    direct = pd.read_sql("SELECT Sample_ID, Percent_Hard_Coral FROM Cover_tbl", con)
+    direct = direct.apply(pd.to_numeric, errors="coerce").groupby("Sample_ID")["Percent_Hard_Coral"].mean()
+    rc = pd.read_sql("SELECT Sample_ID, Calculated_S1, Calculated_S2, Calculated_S3, Calculated_S4 "
+                     "FROM Subquery_6_Calculated_Reef_Check_Segments WHERE Substrate_Name = 'Hard Coral'", con)
+    rc = rc.apply(pd.to_numeric, errors="coerce")
+    rc = rc.set_index("Sample_ID").mean(axis=1).groupby(level=0).mean()
+    cover = pd.DataFrame({"direct": direct, "reef_check": rc})
+    cover["Hard_Coral_Cover"] = cover["direct"].fillna(cover["reef_check"])
+    cover["coral_cover_source"] = (cover["direct"].notna().map({True: "percent", False: None})
+                                   .fillna(cover["reef_check"].notna().map({True: "reef_check_segments",
+                                                                            False: None})))
+    return cover[["Hard_Coral_Cover", "coral_cover_source"]].dropna(subset=["Hard_Coral_Cover"]).reset_index()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=None)
@@ -82,6 +101,7 @@ def main():
     df = (samples.merge(sites, on="Site_ID", how="left")
                  .merge(env, on="Sample_ID", how="left")
                  .merge(cover, on="Sample_ID", how="left")
+                 .merge(coral_cover_per_sample(con), on="Sample_ID", how="left")
                  .merge(bleach, on="Sample_ID", how="left"))
 
     GCBD_RAW.parent.mkdir(parents=True, exist_ok=True)
@@ -91,6 +111,10 @@ def main():
     print(f"Saved {len(df):,} samples x {df.shape[1]} columns to {GCBD_RAW}")
     print(f"Labelled samples: {labelled.sum():,}")
     print(df.loc[labelled, "label_source"].value_counts().to_string())
+    has_cover = df["Hard_Coral_Cover"].notna()
+    print(f"Samples with hard coral cover: {has_cover.sum():,} "
+          f"(range {df['Hard_Coral_Cover'].min():.1f}-{df['Hard_Coral_Cover'].max():.1f}%)")
+    print(df.loc[has_cover, "coral_cover_source"].value_counts().to_string())
 
 
 if __name__ == "__main__":

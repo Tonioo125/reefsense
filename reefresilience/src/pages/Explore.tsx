@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { Loader2, MapPin } from "lucide-react";
-import { getModelMetrics, listReefs } from "@/api/client";
+import { getModelMetrics, getNoaaGap, listReefs } from "@/api/client";
 import AboutSection from "@/components/AboutSection";
 import Hero from "@/components/Hero";
 import InsightsSection from "@/components/InsightsSection";
 import MapFilter from "@/components/MapFilter";
 import MapLegend from "@/components/MapLegend";
+import NoaaGapBanner from "@/components/NoaaGapBanner";
 import ReefAnalysisPanel from "@/components/ReefAnalysisPanel";
 import ResilienceMap from "@/components/ResilienceMap";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,14 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReefDetail } from "@/hooks/useReefDetail";
 import { scrollToSection } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
-import type { ModelMetrics, Reef, ReefExplanation, ReefFilter } from "@/types/reef";
+import type {
+  MapColorBy,
+  ModelMetrics,
+  NoaaGapSummary,
+  Reef,
+  ReefExplanation,
+  ReefFilter,
+} from "@/types/reef";
 
 function PanelEmptyState() {
   return (
@@ -26,6 +34,9 @@ function PanelEmptyState() {
       <p className="mt-1.5 max-w-[16rem] text-sm leading-relaxed text-muted-foreground">
         Choose a marker on the map to view its predicted climate resilience and the model's
         explanation.
+      </p>
+      <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
+        Or click anywhere on the water to test how a location responds to different heat stress.
       </p>
     </div>
   );
@@ -114,11 +125,15 @@ function BottomSheet({ open, onClose, labelledBy, initialFocusRef, children }: B
 export default function Explore() {
   const [reefs, setReefs] = useState<Reef[]>([]);
   const [metrics, setMetrics] = useState<ModelMetrics | null>(null);
+  const [noaaGap, setNoaaGap] = useState<NoaaGapSummary | null>(null);
+  const [highlightGaps, setHighlightGaps] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReefFilter>("All");
+  const [colorBy, setColorBy] = useState<MapColorBy>("resilience");
+  const [showReefArea, setShowReefArea] = useState(true);
 
   const isMdUp = useMediaQuery("(min-width: 768px)");
   const isLgUp = useMediaQuery("(min-width: 1024px)");
@@ -129,11 +144,16 @@ export default function Explore() {
     let active = true;
     setLoading(true);
     setError(null);
-    Promise.all([listReefs(), getModelMetrics().catch(() => null)])
-      .then(([data, m]) => {
+    Promise.all([
+      listReefs(),
+      getModelMetrics().catch(() => null),
+      getNoaaGap().catch(() => null),
+    ])
+      .then(([data, m, gap]) => {
         if (!active) return;
         setReefs(data);
         setMetrics(m);
+        setNoaaGap(gap);
         setLoading(false);
       })
       .catch(() => {
@@ -218,12 +238,31 @@ export default function Explore() {
       <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-16">
         <div className="relative isolate flex flex-col lg:h-[calc(100vh-4rem)] lg:min-h-[600px] lg:flex-row">
           <div className="relative h-[44vh] min-h-[300px] w-full bg-muted md:h-[58vh] md:min-h-[420px] lg:h-full lg:min-h-0 lg:flex-1">
-            <ResilienceMap reefs={visibleReefs} selectedId={selectedId} onSelect={setSelectedId} />
+            <ResilienceMap
+              reefs={visibleReefs}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              colorBy={colorBy}
+              showReefArea={showReefArea}
+              highlightGaps={highlightGaps}
+            />
 
             {!loading && !error && (
               <>
                 <MapFilter value={filter} onChange={handleFilterChange} counts={counts} />
-                <MapLegend />
+                {noaaGap && (
+                  <NoaaGapBanner
+                    summary={noaaGap}
+                    active={highlightGaps}
+                    onToggle={() => setHighlightGaps((v) => !v)}
+                  />
+                )}
+                <MapLegend
+                  colorBy={colorBy}
+                  onColorByChange={setColorBy}
+                  showReefArea={showReefArea}
+                  onShowReefAreaChange={setShowReefArea}
+                />
               </>
             )}
 

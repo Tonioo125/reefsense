@@ -2,6 +2,8 @@ import type { Ref } from "react";
 import { AlertCircle, X } from "lucide-react";
 import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
+import HeatScenario from "@/components/HeatScenario";
+import NoaaGapNote from "@/components/NoaaGapNote";
 import ReefInsight from "@/components/ReefInsight";
 import ResilienceScore from "@/components/ResilienceScore";
 import { Button } from "@/components/ui/button";
@@ -105,6 +107,11 @@ export default function ReefAnalysisPanel({
       <div className={cn("mt-6", wide && "md:grid md:grid-cols-2 md:gap-10")}>
         <div>
           <ResilienceScore probability={reef.resilienceProbability} category={reef.category} />
+          {reef.noaaGap && (
+            <div className="mt-4">
+              <NoaaGapNote reef={reef} />
+            </div>
+          )}
           <Divider />
           <div>
             <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -112,6 +119,19 @@ export default function ReefAnalysisPanel({
             </p>
             <EnvironmentalMetrics metrics={reef.metrics} />
           </div>
+          {reef.metrics.dhwMax12w != null && (
+            <>
+              <Divider />
+              <HeatScenario
+                key={reef.id}
+                latitude={reef.latitude}
+                longitude={reef.longitude}
+                initialDhw={reef.metrics.dhwMax12w}
+                sstAnomaly={reef.metrics.sstAnomaly}
+                currentProbability={reef.resilienceProbability}
+              />
+            </>
+          )}
         </div>
 
         <div className={cn(wide && "md:border-l md:border-border md:pl-10")}>

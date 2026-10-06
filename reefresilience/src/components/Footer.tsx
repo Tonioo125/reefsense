@@ -9,7 +9,8 @@ export default function Footer() {
           </p>
         </div>
         <p className="max-w-sm text-xs leading-relaxed text-primary-foreground/75">
-          Data: Global Coral-Bleaching Database (CC BY 4.0) and NOAA Coral Reef Watch. Predictions
+          Data: Global Coral-Bleaching Database (CC BY 4.0), NOAA Coral Reef Watch and UNEP-WCMC
+          coral reef extent v4.1 (2021, non-commercial use). Predictions
           are model-based estimates and do not prove that any reef is resilient.
         </p>
       </div>

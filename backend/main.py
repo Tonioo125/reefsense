@@ -7,21 +7,41 @@ ReefResilience framing: the model predicts bleaching (>= 10% of colonies) under 
 satellite heat stress. "Probability of high climate resilience" is reported as 1 - P(bleaching), and
 feature contributions are sign-flipped so that positive values raise predicted resilience.
 """
+import base64
 import json
 import os
 import sys
+import threading
+from collections import Counter
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
+REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
+# Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
+EMPTY_TILE = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+TILE_CACHE = {"Cache-Control": "public, max-age=86400"}
 sys.path.insert(0, str(ROOT / "pipeline"))
 
-app = FastAPI(title="ReefCast API", version="0.2.0")
+@asynccontextmanager
+async def lifespan(_app):
+    # Load the model and survey index in the background, so the first /api/predict
+    # (e.g. the first drag of the heat slider) does not wait for it.
+    threading.Thread(target=warm_scorer, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="ReefCast API", version="0.3.0", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # thousands of reefs: the JSON compresses ~10x
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("REEFCAST_CORS", "http://localhost:5173").split(","),
@@ -40,6 +60,17 @@ CRITERIA = {
 ALERT_LABELS = ["No stress", "Watch", "Warning", "Alert level 1", "Alert level 2",
                 "Alert level 3", "Alert level 4", "Alert level 5"]
 TOP_CONTRIBUTIONS = 6
+# NOAA's Bleaching Alert Level 1 ("bleaching likely") starts at 4 Degree Heating Weeks. A reef whose
+# peak DHW stayed below 4 over the past 12 weeks never reached Alert Level 1 in that window. (NOAA's
+# *current* alert is not used: it resets once water cools, even after a summer at alert level.)
+NOAA_ALERT1_DHW = 4.0
+NOAA_GAP_DEFINITION = (
+    "Peak heat stress over the past 12 weeks stayed below 4 DHW, so NOAA Coral Reef Watch's alerts "
+    "did not reach Alert Level 1 here, while the model predicts moderate or lower resilience (at least "
+    "a 34% chance of bleaching of 10% or more of colonies)."
+)
+# Model features that measure recent heat (the rest describe the site or its long-term climate).
+HEAT_FEATURES = {"TSA_DHW", "TSA_DHWMax", "SSTA_DHW", "SSTA", "TSA"}
 
 
 def load_data():
@@ -49,6 +80,13 @@ def load_data():
             detail=f"No scored sites at {DATA_PATH}. Run the pipeline (pipeline/04_score_sites.py) first.",
         )
     return json.loads(DATA_PATH.read_text())
+
+
+def warm_scorer():
+    try:
+        scorer()
+    except HTTPException:
+        pass  # no trained model yet; /api/predict reports it
 
 
 @lru_cache(maxsize=1)
@@ -116,6 +154,23 @@ def insight(resilience, contributions, dhw_max):
     return text
 
 
+def is_noaa_gap(site):
+    """NOAA alerts stayed below Alert Level 1 for 12 weeks, but the model predicts moderate or lower resilience."""
+    dhw = site["heat"].get("dhw_max_12w")
+    resilience = 1 - site["bleaching_probability"]
+    return dhw is not None and dhw < NOAA_ALERT1_DHW and category(resilience) != "High"
+
+
+def top_driver_is_heat(site):
+    contributions = site.get("contributions") or []
+    return bool(contributions) and contributions[0]["feature"] in HEAT_FEATURES
+
+
+def country_of(site):
+    """Country from a "Province, Country" region label (GCBD sites); the label itself otherwise."""
+    return site["region"].rsplit(", ", 1)[-1]
+
+
 def to_reef(site):
     """GET /api/reefs item. Explanation fields live in GET /api/reefs/{id}/explanation."""
     p = site["bleaching_probability"]
@@ -136,7 +191,10 @@ def to_reef(site):
             "seaSurfaceTemp": heat.get("sst_mean_30d"),
             "sstAnomaly": heat.get("ssta_mean_30d"),
             "coralCover": site_cover if site_cover is not None else site.get("survey_coral_cover_pct"),
-            "coralCoverSource": "site" if site_cover is not None else "nearby surveys",
+            # "site list": entered in data/sites; "survey": latest GCBD survey at or near the reef.
+            "coralCoverSource": "site list" if site_cover is not None else "survey",
+            "coralCoverYear": None if site_cover is not None else site.get("survey_coral_cover_year"),
+            "coralCoverKm": None if site_cover is not None else site.get("survey_coral_cover_km"),
             "depth": site.get("depth_m"),
             "dhwNow": heat.get("dhw_now"),
             "dhwMax12w": heat.get("dhw_max_12w"),
@@ -145,6 +203,7 @@ def to_reef(site):
         },
         "nearestSurveyKm": site.get("nearest_survey_km"),
         "asOf": heat.get("as_of"),
+        "noaaGap": is_noaa_gap(site),
     }
 
 
@@ -172,6 +231,16 @@ def health():
 @app.get("/api/sites")
 def sites():
     return load_data()["sites"]
+
+
+@app.get("/api/tiles/reef-area/{z}/{x}/{y}.png")
+def reef_area_tile(z: int, x: int, y: int):
+    """Coral reef extent (UNEP-WCMC v4.1, 2021) as raster tiles. Served as images only: the source
+    license forbids making the data downloadable, so the vector outlines are never exposed."""
+    path = REEF_AREA_TILES / str(z) / str(x) / f"{y}.png"
+    if path.is_file():
+        return FileResponse(path, media_type="image/png", headers=TILE_CACHE)
+    return Response(EMPTY_TILE, media_type="image/png", headers=TILE_CACHE)
 
 
 @app.get("/api/model")
@@ -245,12 +314,35 @@ class PredictInput(BaseModel):
     depth: float | None = Field(None, ge=0, description="Reef depth (m)")
 
 
+@app.get("/api/noaa-gap")
+def noaa_gap():
+    """Reefs the model flags as at elevated bleaching risk although NOAA's alerts stayed below Alert
+    Level 1 for the past 12 weeks."""
+    sites = scored_sites()
+    below = [s for s in sites if s["heat"].get("dhw_max_12w") is not None
+             and s["heat"]["dhw_max_12w"] < NOAA_ALERT1_DHW]
+    gaps = sorted((s for s in below if is_noaa_gap(s)), key=lambda s: -s["bleaching_probability"])
+    return {
+        "definition": NOAA_GAP_DEFINITION,
+        "count": len(gaps),
+        "belowAlert1Count": len(below),
+        "total": len(sites),
+        # Caveat, reported rather than hidden: for some flagged reefs the model's largest driver is a
+        # site attribute (e.g. cyclone frequency) rather than recent heat.
+        "nonHeatTopDriverCount": sum(not top_driver_is_heat(s) for s in gaps),
+        "asOf": max((s["heat"].get("as_of") or "" for s in sites), default=None) or None,
+        "byCountry": [{"country": c, "count": n}
+                      for c, n in Counter(country_of(s) for s in gaps).most_common()],
+        "reefIds": [s["site_id"] for s in gaps],
+    }
+
+
 @app.post("/api/predict")
 def predict(body: PredictInput):
     """Score any location under a given heat-stress scenario. Non-heat conditions come from nearby surveys."""
     s = scorer()
     heat = {"dhw_max_12w": body.dhwMax12w, "ssta_mean_30d": body.sstAnomaly}
-    row, _, nearest_km = s.feature_row(body.latitude, body.longitude, heat, {"Depth_m": body.depth})
+    row, nearest_km = s.feature_row(body.latitude, body.longitude, heat, {"Depth_m": body.depth})
     p, contributions = s.explain(row)
     resilience = round(1 - p, 4)
     return {
