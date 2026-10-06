@@ -1,5 +1,6 @@
 import type {
   ModelMetrics,
+  NoaaGapSummary,
   PredictRequest,
   PredictResponse,
   Reef,
@@ -15,6 +16,7 @@ import type {
  *   POST /api/predict                 -> predict(input)
  *   GET  /api/reefs/{id}/explanation  -> getExplanation(id)
  *   GET  /api/model                   -> getModelMetrics()
+ *   GET  /api/noaa-gap                -> getNoaaGap()
  */
 
 export interface ApiConfig {
@@ -90,4 +92,17 @@ export function predict(input: PredictRequest): Promise<PredictResponse> {
 export async function getModelMetrics(): Promise<ModelMetrics | null> {
   const { metrics } = await http<{ metrics: ModelMetrics }>("/model");
   return metrics?.model ? metrics : null;
+}
+
+/** GET /api/noaa-gap: reefs at elevated predicted risk while NOAA's current alert is below Warning. */
+export function getNoaaGap(): Promise<NoaaGapSummary> {
+  return http<NoaaGapSummary>("/noaa-gap");
+}
+
+/**
+ * Leaflet tile URL for the coral reef extent layer (UNEP-WCMC v4.1). Images only: the source license
+ * forbids making the underlying data downloadable.
+ */
+export function reefAreaTileUrl(): string {
+  return `${getApiConfig().baseUrl}/api/tiles/reef-area/{z}/{x}/{y}.png`;
 }

@@ -123,19 +123,26 @@ path.leaflet-interactive:focus {
   filter: saturate(0.45) brightness(1.03) contrast(0.95);
 }
 
-/* Clean, label-style tooltips for reef markers. */
+/* Hover cards for reef markers: a deep forest card with a subtle depth gradient. */
 .reef-tooltip {
-  background: hsl(var(--primary));
+  background: linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(165 42% 10%) 100%);
   color: hsl(var(--primary-foreground));
-  border: none;
-  border-radius: 6px;
-  padding: 3px 9px;
+  border: 1px solid hsl(0 0% 100% / 0.08);
+  border-radius: 10px;
+  padding: 9px 11px 10px;
   font-size: 11px;
-  font-weight: 500;
-  box-shadow: 0 6px 18px -10px rgba(16, 40, 34, 0.6);
+  font-weight: 400;
+  white-space: normal;
+  box-shadow: 0 12px 28px -12px rgba(16, 40, 34, 0.65);
 }
 .reef-tooltip::before {
-  border-top-color: hsl(var(--primary)) !important;
+  border-top-color: hsl(165 42% 10%) !important;
+}
+
+/* Markers ease between their resting and hovered styles. */
+path.reef-marker {
+  cursor: pointer;
+  transition: fill-opacity 150ms ease, stroke-width 150ms ease, stroke 150ms ease;
 }
 
 /* --- Reduced motion ------------------------------------------------------- */

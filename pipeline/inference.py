@@ -12,8 +12,10 @@ from config import CRW_OVERRIDES, FEATURE_LABELS, MODEL_PATH
 
 EARTH_RADIUS_KM = 6371.0
 NEIGHBOURS = 5
-# Reported from nearby surveys for context; not model features.
-CONTEXT_COLUMNS = ["Percent_Hard_Coral"]
+# A survey this close is the reef's own: its values are used directly, neighbours only fill gaps.
+OWN_SURVEY_KM = 0.5
+# Coral cover is reported from the latest survey at the reef, or the nearest one within this radius.
+COVER_RADIUS_KM = 10.0
 
 
 class Scorer:
@@ -21,26 +23,53 @@ class Scorer:
         bundle = joblib.load(model_path)
         self.model, self.features, self.region = bundle["model"], bundle["features"], bundle["region"]
         gcbd = filter_region(load_gcbd(), self.region)
-        columns = self.features + [c for c in CONTEXT_COLUMNS if c in gcbd.columns]
-        self.survey = gcbd.groupby(["lat", "lon"])[columns].median().reset_index()
+        self.survey = gcbd.groupby(["lat", "lon"])[self.features].median().reset_index()
         self.tree = BallTree(np.radians(self.survey[["lat", "lon"]].to_numpy()), metric="haversine")
 
-    def feature_row(self, lat, lon, heat=None, overrides=None):
-        """Static features from the nearest surveyed reefs, thermal features from live heat stress.
+        # Latest hard coral cover per surveyed location (mean over that year's samples), with its year.
+        cover = gcbd.loc[gcbd.get("Hard_Coral_Cover", pd.Series(dtype=float)).notna()
+                         & gcbd["year"].notna(), ["lat", "lon", "year", "Hard_Coral_Cover"]]
+        cover = cover[cover["year"] == cover.groupby(["lat", "lon"])["year"].transform("max")]
+        self.cover = cover.groupby(["lat", "lon", "year"], as_index=False)["Hard_Coral_Cover"].mean()
+        self.cover_tree = (BallTree(np.radians(self.cover[["lat", "lon"]].to_numpy()), metric="haversine")
+                           if len(self.cover) else None)
 
-        Returns (row, context, nearest_survey_km).
+    def coral_cover(self, lat, lon):
+        """Latest surveyed hard coral cover at or near a reef: {pct, year, km}, or None beyond the radius."""
+        if self.cover_tree is None:
+            return None
+        dist, idx = self.cover_tree.query(np.radians([[lat, lon]]), k=1)
+        km = float(dist[0][0] * EARTH_RADIUS_KM)
+        if km > COVER_RADIUS_KM:
+            return None
+        hit = self.cover.iloc[idx[0][0]]
+        return {"pct": round(float(hit["Hard_Coral_Cover"]), 1), "year": int(hit["year"]), "km": round(km, 1)}
+
+    def feature_row(self, lat, lon, heat=None, overrides=None):
+        """Static features from the reef's own survey (or the nearest surveyed reefs), thermal features
+        from live heat stress.
+
+        Returns (row, nearest_survey_km).
         """
         dist, idx = self.tree.query(np.radians([[lat, lon]]), k=min(NEIGHBOURS, len(self.survey)))
         neighbours = self.survey.iloc[idx[0]]
-        row = {f: neighbours[f].median() for f in self.features}
-        context = {c: neighbours[c].median() for c in CONTEXT_COLUMNS if c in neighbours}
+        nearest_km = float(dist[0][0] * EARTH_RADIUS_KM)
+
+        def value(col):
+            median = neighbours[col].median()
+            if nearest_km <= OWN_SURVEY_KM:
+                own = neighbours[col].iloc[0]
+                return median if pd.isna(own) else own
+            return median
+
+        row = {f: value(f) for f in self.features}
         for feat, key in CRW_OVERRIDES.items():
             if feat in row and heat and heat.get(key) is not None:
                 row[feat] = heat[key]
-        for feat, value in (overrides or {}).items():
-            if feat in row and value is not None:
-                row[feat] = value
-        return row, context, float(dist[0][0] * EARTH_RADIUS_KM)
+        for feat, override in (overrides or {}).items():
+            if feat in row and override is not None:
+                row[feat] = override
+        return row, nearest_km
 
     def explain(self, row):
         """Bleaching probability plus every feature's log-odds contribution, largest first."""

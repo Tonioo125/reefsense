@@ -106,7 +106,8 @@ export function environmentalSummary(m: EnvironmentalMetrics): string {
   const parts: string[] = [];
   if (m.coralCover != null) {
     const cover = m.coralCover >= 50 ? "high" : m.coralCover >= 25 ? "moderate" : "low";
-    parts.push(`${cover} coral cover (${Math.round(m.coralCover)}%)`);
+    const year = m.coralCoverYear ? `, ${m.coralCoverYear} survey` : "";
+    parts.push(`${cover} coral cover (${Math.round(m.coralCover)}%${year})`);
   }
   if (m.heatStress && m.dhwMax12w != null) {
     parts.push(
@@ -116,6 +117,64 @@ export function environmentalSummary(m: EnvironmentalMetrics): string {
   let sentence = parts.length ? `${reef} with ${parts.join(" and ")}` : reef;
   if (m.seaSurfaceTemp != null) sentence += ` at a mean SST of ${m.seaSurfaceTemp.toFixed(1)} °C`;
   return `${sentence}.`;
+}
+
+/** Where a coral-cover value comes from, e.g. "2019 survey" or "2016 survey, 3.2 km away". */
+export function coralCoverNote(m: EnvironmentalMetrics): string | undefined {
+  if (m.coralCover == null) return "no survey within 10 km";
+  if (m.coralCoverSource !== "survey" || m.coralCoverYear == null) return undefined;
+  const where = m.coralCoverKm != null && m.coralCoverKm >= 0.5 ? `, ${m.coralCoverKm} km away` : "";
+  return `${m.coralCoverYear} survey${where}`;
+}
+
+/**
+ * Outer bounds of the reef extent tiles, [[south, west], [north, east]]: the envelope of
+ * REEF_AREA_BOXES in pipeline/config.py (West, South, Southeast and East Asia).
+ */
+export const REEF_AREA_BOUNDS: [[number, number], [number, number]] = [
+  [-12, 32],
+  [36, 150],
+];
+/** Fill colour of the reef extent tiles (mirrors pipeline/05_reef_area_tiles.py). */
+export const REEF_AREA_COLOR = "rgba(32, 164, 170, 0.55)";
+export const REEF_AREA_ATTRIBUTION =
+  'Reef extent: UNEP-WCMC, WorldFish, WRI, TNC (2010), v4.1 released 2021 · <a href="https://www.unep-wcmc.org" target="_blank" rel="noopener">UNEP-WCMC</a>';
+
+/** Sequential scale for hard coral cover: pale sand (bare) to deep teal (dense coral). */
+export const CORAL_COVER_STOPS: { pct: number; color: [number, number, number] }[] = [
+  { pct: 0, color: [236, 224, 199] },
+  { pct: 35, color: [116, 181, 161] },
+  { pct: 70, color: [22, 96, 82] },
+];
+export const CORAL_COVER_NO_DATA = "#c5ccce";
+/** Cover at which the scale saturates (the legend shows "70%+"). */
+export const CORAL_COVER_MAX = CORAL_COVER_STOPS[CORAL_COVER_STOPS.length - 1].pct;
+
+/** CSS gradient for the coral cover scale, 0% → CORAL_COVER_MAX. */
+export const CORAL_COVER_GRADIENT = `linear-gradient(to right, ${CORAL_COVER_STOPS.map(
+  (s) => `rgb(${s.color.join(", ")}) ${(s.pct / CORAL_COVER_MAX) * 100}%`,
+).join(", ")})`;
+
+/** CSS gradient for predicted resilience, 0% → 100%, blending the three bands at their thresholds. */
+export const RESILIENCE_GRADIENT = (() => {
+  const { high, medium } = CATEGORY_THRESHOLDS;
+  const mid = ((medium + high) / 2) * 100;
+  return (
+    `linear-gradient(to right, ${CATEGORY_COLORS.Low.base} 0%, ${CATEGORY_COLORS.Low.base} ${medium * 70}%, ` +
+    `${CATEGORY_COLORS.Medium.base} ${mid}%, ${CATEGORY_COLORS.High.base} ${high * 100 + 10}%, ` +
+    `${CATEGORY_COLORS.High.base} 100%)`
+  );
+})();
+
+export function coralCoverColor(pct: number | null): string {
+  if (pct == null) return CORAL_COVER_NO_DATA;
+  const stops = CORAL_COVER_STOPS;
+  const p = Math.min(Math.max(pct, stops[0].pct), stops[stops.length - 1].pct);
+  const i = Math.max(0, stops.findIndex((s) => s.pct >= p) - 1);
+  const [a, b] = [stops[i], stops[Math.min(i + 1, stops.length - 1)]];
+  const t = b.pct === a.pct ? 0 : (p - a.pct) / (b.pct - a.pct);
+  const rgb = a.color.map((c, k) => Math.round(c + (b.color[k] - c) * t));
+  return `rgb(${rgb.join(", ")})`;
 }
 
 export const formatPercent = (p: number, digits = 0): string =>

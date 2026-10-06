@@ -38,8 +38,23 @@ export default function AboutSection() {
               Bleaching labels and reef conditions come from the Global Coral-Bleaching Database
               (van Woesik &amp; Kratochwill 2022, CC BY 4.0); live heat stress comes from NOAA Coral
               Reef Watch daily 5 km satellite products. Training heat metrics (CoRTAD) and live
-              ones (Coral Reef Watch) are related but distinct products, and non-heat conditions
-              for each reef are borrowed from the nearest surveyed reefs.
+              ones (Coral Reef Watch) are related but distinct products. Non-heat conditions come
+              from each reef&apos;s own survey where one exists, otherwise from the nearest surveyed
+              reefs.
+            </p>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              Reef area: UNEP-WCMC, WorldFish Centre, WRI, TNC (2010). Global distribution of
+              warm-water coral reefs, compiled from multiple sources including the Millennium Coral
+              Reef Mapping Project. Version 4.1, released 2021. Cambridge (UK): UNEP World
+              Conservation Monitoring Centre.{" "}
+              <a
+                href="https://www.unep-wcmc.org"
+                target="_blank"
+                rel="noopener"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                unep-wcmc.org
+              </a>
             </p>
           </div>
 

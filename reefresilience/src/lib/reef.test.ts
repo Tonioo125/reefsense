@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  CATEGORY_COLORS,
   CATEGORY_THRESHOLDS,
+  CORAL_COVER_GRADIENT,
+  CORAL_COVER_MAX,
+  RESILIENCE_GRADIENT,
+  CORAL_COVER_NO_DATA,
+  coralCoverColor,
+  coralCoverNote,
   categoryFromProbability,
   categoryRangeLabel,
   environmentalSummary,
@@ -115,5 +122,49 @@ describe("environmentalSummary", () => {
     expect(
       environmentalSummary({ seaSurfaceTemp: null, coralCover: null, depth: null, heatStress: null }),
     ).toBe("Reef.");
+  });
+});
+
+describe("coral cover", () => {
+  const base = { seaSurfaceTemp: 27.8, depth: 6, heatStress: "Moderate" as const };
+
+  it("dates every survey value and gives the distance when it is not the reef's own", () => {
+    expect(coralCoverNote({ ...base, coralCover: 36, coralCoverSource: "survey", coralCoverYear: 2019, coralCoverKm: 0 })).toBe("2019 survey");
+    expect(coralCoverNote({ ...base, coralCover: 36, coralCoverSource: "survey", coralCoverYear: 2016, coralCoverKm: 3.2 })).toBe("2016 survey, 3.2 km away");
+    expect(coralCoverNote({ ...base, coralCover: null })).toBe("no survey within 10 km");
+  });
+
+  it("includes the survey year in the summary", () => {
+    expect(environmentalSummary({ ...base, coralCover: 36, coralCoverYear: 2019 })).toBe(
+      "Shallow reef (6.0 m) with moderate coral cover (36%, 2019 survey) at a mean SST of 27.8 °C.",
+    );
+  });
+
+  it("maps cover onto the sequential scale and marks missing data", () => {
+    expect(coralCoverColor(0)).toBe("rgb(236, 224, 199)");
+    expect(coralCoverColor(70)).toBe("rgb(22, 96, 82)");
+    expect(coralCoverColor(95)).toBe("rgb(22, 96, 82)");
+    expect(coralCoverColor(null)).toBe(CORAL_COVER_NO_DATA);
+  });
+});
+
+describe("map gradients", () => {
+  const stops = (g: string) => [...g.matchAll(/(\d+(?:\.\d+)?)%/g)].map((m) => Number(m[1]));
+
+  it("resilience gradient runs low → high with increasing stops inside 0–100%", () => {
+    const s = stops(RESILIENCE_GRADIENT);
+    expect(s).toEqual([...s].sort((a, b) => a - b));
+    expect(s[0]).toBe(0);
+    expect(s[s.length - 1]).toBe(100);
+    expect(RESILIENCE_GRADIENT.indexOf(CATEGORY_COLORS.Low.base)).toBeLessThan(
+      RESILIENCE_GRADIENT.indexOf(CATEGORY_COLORS.High.base),
+    );
+  });
+
+  it("coral gradient spans 0% to the scale maximum", () => {
+    const s = stops(CORAL_COVER_GRADIENT);
+    expect(s[0]).toBe(0);
+    expect(s[s.length - 1]).toBe(100);
+    expect(CORAL_COVER_MAX).toBe(70);
   });
 });

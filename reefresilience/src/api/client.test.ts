@@ -4,9 +4,11 @@ import {
   getApiConfig,
   getExplanation,
   getModelMetrics,
+  getNoaaGap,
   getReef,
   listReefs,
   predict,
+  reefAreaTileUrl,
 } from "@/api/client";
 
 afterEach(() => {
@@ -40,6 +42,15 @@ describe("configuration", () => {
   });
 });
 
+describe("reef area tiles", () => {
+  it("builds a Leaflet tile template on the API origin", () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.test/");
+    expect(reefAreaTileUrl()).toBe("http://api.test/api/tiles/reef-area/{z}/{x}/{y}.png");
+    vi.stubEnv("VITE_API_BASE_URL", "");
+    expect(reefAreaTileUrl()).toBe("/api/tiles/reef-area/{z}/{x}/{y}.png");
+  });
+});
+
 describe("endpoints", () => {
   it("calls the FastAPI endpoints", async () => {
     const fetchMock = useHttp(() => jsonResponse({ metrics: {} }));
@@ -48,6 +59,7 @@ describe("endpoints", () => {
     await getExplanation("GL15");
     await predict({ latitude: -8.7155, longitude: 115.456, dhwMax12w: 4 });
     await getModelMetrics();
+    await getNoaaGap();
 
     const urls = fetchMock.mock.calls.map(([url]) => url);
     expect(urls).toEqual([
@@ -56,6 +68,7 @@ describe("endpoints", () => {
       "http://api.test/api/reefs/GL15/explanation",
       "http://api.test/api/predict",
       "http://api.test/api/model",
+      "http://api.test/api/noaa-gap",
     ]);
     const [, init] = fetchMock.mock.calls[3];
     expect(init?.method).toBe("POST");

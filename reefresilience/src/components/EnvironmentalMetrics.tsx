@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Flame, Ruler, Sprout, Thermometer, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { levelTone } from "@/lib/reef";
+import { coralCoverNote, levelTone } from "@/lib/reef";
 import type { EnvironmentalMetrics as Metrics, QualitativeLevel } from "@/types/reef";
 
 interface EnvironmentalMetricsProps {
@@ -76,14 +76,8 @@ export default function EnvironmentalMetrics({ metrics }: EnvironmentalMetricsPr
           <Value>n/a</Value>
         )}
       </Row>
-      <Row icon={Sprout} label="Coral cover">
-        <Value
-          note={
-            metrics.coralCoverSource === "nearby surveys" && metrics.coralCover != null
-              ? "nearby surveys"
-              : undefined
-          }
-        >
+      <Row icon={Sprout} label="Hard coral cover">
+        <Value note={coralCoverNote(metrics)}>
           {metrics.coralCover == null ? "n/a" : `${Math.round(metrics.coralCover)}%`}
         </Value>
       </Row>

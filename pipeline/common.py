@@ -1,8 +1,13 @@
-"""Shared helpers: loading and normalising the Global Coral-Bleaching Database."""
+"""Shared helpers: loading the Global Coral-Bleaching Database and querying NOAA's ERDDAP."""
+import io
+import time
+
 import numpy as np
 import pandas as pd
+import requests
 
-from config import COLUMN_CANDIDATES, FEATURE_CANDIDATES, GCBD_RAW, KELVIN_COLUMNS, REGIONS
+from config import (COLUMN_CANDIDATES, CRW_ERDDAP, FEATURE_CANDIDATES, GCBD_RAW, KELVIN_COLUMNS,
+                    REGIONS)
 
 EXPOSURE_CODES = {"sheltered": 0, "sometimes": 1, "exposed": 2}
 
@@ -64,6 +69,21 @@ def filter_region(df, region):
 
 def usable_features(df, min_coverage=0.5):
     return [f for f in FEATURE_CANDIDATES if f in df.columns and df[f].notna().mean() >= min_coverage]
+
+
+def erddap_csv(query, timeout=180, attempts=3):
+    """GET a griddap CSV query against NOAA Coral Reef Watch; None if every attempt fails."""
+    url = f"{CRW_ERDDAP}.csv?{query}"
+    for attempt in range(attempts):
+        try:
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            # ERDDAP CSVs put a units row directly under the header; drop it.
+            return pd.read_csv(io.StringIO(resp.text), skiprows=[1], parse_dates=["time"])
+        except requests.RequestException as err:
+            print(f"  attempt {attempt + 1} failed: {err}", flush=True)
+            time.sleep(3 * (attempt + 1))
+    return None
 
 
 def to_json_safe(value):

@@ -18,7 +18,31 @@ CRW_VARIABLES = ["CRW_DHW", "CRW_SSTANOMALY", "CRW_BAA", "CRW_SST"]
 
 # --- Files produced by the pipeline -------------------------------------
 SITES_CSV = SITES_DIR / "demo_sites.csv"
-CRW_TIMESERIES = PROCESSED / "crw_timeseries.csv"
+GCBD_SITES_CSV = SITES_DIR / "gcbd_asia.csv"  # written by 01c_make_gcbd_sites.py
+SITE_FILES = [SITES_CSV, GCBD_SITES_CSV]  # every list that exists is scored
+CRW_TIMESERIES = PROCESSED / "crw_timeseries.csv"  # per-site point series (02_fetch_crw.py)
+CRW_HEAT_GRID = PROCESSED / "crw_heat_grid.csv"  # per-site summaries from regional grids (02b)
+CRW_GRID_CACHE = RAW / "crw_grid"  # raw grid downloads, reused on re-runs
+# Reef extent map tiles (05_reef_area_tiles.py), rendered from UNEP-WCMC data for these boxes
+# (lon_min, lat_min, lon_max, lat_max). Together they cover Asia's reefs; being boxes, they also take in
+# some neighbouring coasts (the Red Sea's African shore, Palau, northernmost Australia).
+REEF_AREA_BOXES = [
+    (32.0, 10.5, 63.0, 30.5),   # West Asia: Red Sea, Gulf of Aden, Persian Gulf, Gulf of Oman
+    (66.0, -1.0, 94.0, 25.0),   # South Asia: Maldives, Lakshadweep, India, Sri Lanka, Andamans
+    (92.0, -12.0, 150.0, 36.0),  # Southeast and East Asia: Indonesia to Japan
+]
+REEF_AREA_TILES = PROCESSED / "reef_area_tiles"
+
+# UN geoscheme Asia (East, Southeast, South and West Asia), spelled as in GCBD. Egypt is Africa in the
+# UN scheme, so its Sinai reefs are excluded; Pacific islands such as Palau are Oceania.
+ASIA_COUNTRIES = [
+    "Japan", "Taiwan", "China",
+    "Malaysia", "Indonesia", "Philippines", "Vietnam", "Thailand", "Cambodia", "Brunei", "Myanmar",
+    "East Timor", "Singapore",
+    "Maldives", "India", "Iran", "Sri Lanka", "Bangladesh",
+    "Oman", "Saudi Arabia", "Bahrain", "United Arab Emirates", "Yemen", "Israel", "Kuwait", "Jordan",
+]
+REGION_COUNTRIES = {"asia": ASIA_COUNTRIES}
 MODEL_PATH = PROCESSED / "bleaching_model.joblib"
 METRICS_PATH = PROCESSED / "model_metrics.json"
 SITES_SCORED = PROCESSED / "sites_scored.json"

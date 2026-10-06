@@ -7,29 +7,15 @@ Coastal reefs often fall in a 5 km pixel masked as land. When that happens, the 
 with data (within SEARCH_RADIUS_DEG) is used instead; the latitude/longitude columns record the pixel.
 """
 import argparse
-import io
 import math
 import time
 
 import pandas as pd
-import requests
 
-from config import CRW_ERDDAP, CRW_TIMESERIES, CRW_VARIABLES, SITES_CSV
+from common import erddap_csv
+from config import CRW_TIMESERIES, CRW_VARIABLES, SITES_CSV
 
 SEARCH_RADIUS_DEG = 0.25
-
-
-def erddap_csv(query):
-    url = f"{CRW_ERDDAP}.csv?{query}"
-    for attempt in range(3):
-        try:
-            resp = requests.get(url, timeout=180)
-            resp.raise_for_status()
-            return pd.read_csv(io.StringIO(resp.text), skiprows=[1], parse_dates=["time"])
-        except requests.RequestException as err:
-            print(f"  attempt {attempt + 1} failed: {err}")
-            time.sleep(3 * (attempt + 1))
-    return None
 
 
 def fetch_point(lat, lon, days):

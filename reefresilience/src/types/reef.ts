@@ -10,10 +10,14 @@ export interface EnvironmentalMetrics {
   seaSurfaceTemp: number | null;
   /** Mean sea temperature anomaly over the last 30 days, °C. */
   sstAnomaly?: number | null;
-  /** Live hard coral cover, percent. */
+  /** Hard coral cover, percent, from the latest survey at or near the reef. Null when none within 10 km. */
   coralCover: number | null;
-  /** Whether coral cover was measured at the site or borrowed from nearby surveys. */
-  coralCoverSource?: "site" | "nearby surveys";
+  /** "survey": GCBD survey at or near the reef; "site list": entered for the site. */
+  coralCoverSource?: "site list" | "survey";
+  /** Year of the survey the coral cover comes from. */
+  coralCoverYear?: number | null;
+  /** Distance from the reef to that survey, km (0 = the reef's own survey). */
+  coralCoverKm?: number | null;
   /** Representative reef depth, metres (from nearby surveys). */
   depth: number | null;
   /** Degree Heating Weeks today and peak over the last 12 weeks. */
@@ -50,7 +54,28 @@ export interface Reef {
   nearestSurveyKm?: number;
   /** Date of the latest satellite heat-stress observation. */
   asOf?: string | null;
+  /**
+   * True when peak heat stress stayed below 4 DHW for 12 weeks (NOAA's alerts never reached Alert
+   * Level 1) but the model predicts moderate or lower resilience. See GET /api/noaa-gap.
+   */
+  noaaGap?: boolean;
   metrics: EnvironmentalMetrics;
+}
+
+/** GET /api/noaa-gap */
+export interface NoaaGapSummary {
+  definition: string;
+  /** Reefs flagged (noaaGap). */
+  count: number;
+  /** Reefs whose peak DHW stayed below 4 over 12 weeks (NOAA never reached Alert Level 1). */
+  belowAlert1Count: number;
+  total: number;
+  /** Flagged reefs whose largest model driver is a site attribute rather than recent heat. */
+  nonHeatTopDriverCount: number;
+  asOf: string | null;
+  byCountry: { country: string; count: number }[];
+  /** Flagged reef ids, highest predicted bleaching risk first. */
+  reefIds: string[];
 }
 
 /** GET /api/reefs/{id}/explanation */
@@ -87,6 +112,9 @@ export interface PredictResponse {
 }
 
 export type ReefFilter = "All" | ResilienceCategory;
+
+/** What the map markers are coloured by. */
+export type MapColorBy = "resilience" | "coral";
 
 /** Cross-validated model performance, as written by pipeline/03_train_bleaching.py. */
 export interface ModelMetrics {

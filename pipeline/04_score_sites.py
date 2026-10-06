@@ -7,7 +7,7 @@ import json
 import pandas as pd
 
 from common import to_json_safe
-from config import CRW_TIMESERIES, METRICS_PATH, SITES_CSV, SITES_SCORED
+from config import CRW_HEAT_GRID, CRW_TIMESERIES, METRICS_PATH, SITE_FILES, SITES_SCORED
 from inference import Scorer
 
 
@@ -32,19 +32,42 @@ def heat_summary(ts):
     }
 
 
+def grid_heat(row):
+    """Heat summary from a 02b_fetch_crw_grid.py row (no daily series: grids are summarised on download)."""
+    keys = ["dhw_now", "dhw_max_12w", "ssta_mean_30d", "sst_mean_30d", "alert_level", "as_of"]
+    heat = {k: (None if pd.isna(row.get(k)) else row.get(k)) for k in keys}
+    heat["series"] = []
+    return heat
+
+
+def load_sites():
+    lists = [pd.read_csv(path) for path in SITE_FILES if path.exists()]
+    sites = pd.concat(lists, ignore_index=True)
+    dupes = sites["site_id"][sites["site_id"].duplicated()].unique()
+    if len(dupes):
+        raise SystemExit(f"Duplicate site_id across site lists: {list(dupes)[:5]}")
+    return sites
+
+
 def optional(value, cast=float):
     return None if pd.isna(value) else cast(value)
 
 
 def main():
     scorer = Scorer()
-    sites = pd.read_csv(SITES_CSV)
-    crw = pd.read_csv(CRW_TIMESERIES, parse_dates=["time"])
+    sites = load_sites()
+    crw = (pd.read_csv(CRW_TIMESERIES, parse_dates=["time"]) if CRW_TIMESERIES.exists()
+           else pd.DataFrame(columns=["site_id", "time", "CRW_DHW"]))
+    grid = (pd.read_csv(CRW_HEAT_GRID).set_index("site_id") if CRW_HEAT_GRID.exists()
+            else pd.DataFrame())
 
     out = []
     for site in sites.itertuples():
         heat = heat_summary(crw[crw["site_id"] == site.site_id])
-        row, context, nearest_km = scorer.feature_row(site.lat, site.lon, heat)
+        if heat["dhw_max_12w"] is None and site.site_id in grid.index:
+            heat = grid_heat(grid.loc[site.site_id])
+        row, nearest_km = scorer.feature_row(site.lat, site.lon, heat)
+        cover = scorer.coral_cover(site.lat, site.lon) or {}
         prob, contributions = scorer.explain(row)
         if heat["dhw_max_12w"] is None:
             prob = None  # no live heat stress for this pixel: don't report a stale-climatology guess
@@ -60,17 +83,22 @@ def main():
             ],
             "contributions": contributions,
             "depth_m": to_json_safe(row.get("Depth_m")),
-            "survey_coral_cover_pct": to_json_safe(context.get("Percent_Hard_Coral")),
+            "survey_coral_cover_pct": cover.get("pct"),
+            "survey_coral_cover_year": cover.get("year"),
+            "survey_coral_cover_km": cover.get("km"),
             "nearest_survey_km": round(nearest_km, 1),
             "coral_cover_pct": optional(site.coral_cover_pct),
             "refugia_50reefs_plus": optional(site.refugia_50reefs_plus, lambda v: bool(int(v))),
             "connectivity": optional(site.connectivity),
             "in_mpa": optional(site.in_mpa, lambda v: bool(int(v))),
         })
-        print(f"{site.site_id} {site.name}: p={prob}")
+    scored = sum(s["bleaching_probability"] is not None for s in out)
+    print(f"Scored {scored:,} of {len(out):,} sites; without heat data: "
+          f"{[s['site_id'] for s in out if s['bleaching_probability'] is None][:10]}")
 
     metrics = json.loads(METRICS_PATH.read_text()) if METRICS_PATH.exists() else {}
-    SITES_SCORED.write_text(json.dumps({"model": metrics, "sites": out}, indent=2))
+    # Compact: with thousands of sites, indentation would roughly double the file.
+    SITES_SCORED.write_text(json.dumps({"model": metrics, "sites": out}, separators=(",", ":")))
     print(f"Wrote {SITES_SCORED}")
 
 

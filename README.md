@@ -55,6 +55,7 @@ The NOAA-style rule "DHW ≥ 4" catches only 26% of bleaching events globally (2
 | [Allen Coral Atlas](https://allencoralatlas.org/) | Reef habitat layers | CC BY 4.0 |
 | [MERMAID](https://datamermaid.org/) public summaries | Coral cover per site | Per project |
 | [50 Reefs+](https://zenodo.org/records/18729043) climate refugia layer | Ranking criterion and external check | See record |
+| [UNEP-WCMC Global Distribution of Coral Reefs](https://data.unep-wcmc.org/datasets/1) v4.1 (2021) | Reef-area map layer | UNEP-WCMC General Data License: non-commercial; may be shown online only if not downloadable, with citation |
 
 ## Run it locally
 
@@ -65,9 +66,14 @@ pip install -r pipeline/requirements.txt
 python pipeline/01b_import_gcbd_sqlite.py # labels, from the GCBD SQLite placed in data/raw/
 #   (or: python pipeline/01_fetch_gcbd.py  # ERDDAP download, when the BCO-DMO server is up)
 python pipeline/00_check_feasibility.py   # go/no-go on Indonesian label counts
-python pipeline/02_fetch_crw.py --days 180  # ~30 s per site via the NOAA/PacIOOS ERDDAP mirror
+python pipeline/02_fetch_crw.py --days 180  # demo sites: ~30 s per site via the NOAA/PacIOOS ERDDAP mirror
+python pipeline/01c_make_gcbd_sites.py     # every surveyed reef in Asia: 3,756 sites, 26 countries
+#   (or --country Indonesia for one country)
+python pipeline/02b_fetch_crw_grid.py       # their heat stress as regional grids (~11 min for 3,756 sites, not ~33 h)
 python pipeline/03_train_bleaching.py --region global
 python pipeline/04_score_sites.py         # writes data/processed/sites_scored.json
+python pipeline/05_reef_area_tiles.py     # optional reef-area map layer for Asia (~6 min); needs the UNEP-WCMC
+#   coral reef zip in data/raw/wcmc/ (https://data.unep-wcmc.org/datasets/1)
 
 # 2. API
 pip install -r backend/requirements.txt
@@ -88,9 +94,12 @@ Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugi
 - Satellite pixels are 5 km; individual reefs vary within a pixel. When a coastal reef's pixel is masked as land, the nearest ocean pixel within 0.25° is used.
 - ReefResilience reports "probability of high climate resilience" as 1 − P(bleaching ≥ 10%) under the past 12 weeks of heat stress. It is a near-term resistance estimate, not a long-term projection.
 - Labels mix three survey methods; severity-code labels are coarse (banded) values.
-- Non-heat conditions for each site are borrowed from the nearest surveyed reefs.
+- Non-heat conditions come from the reef's own GCBD survey when one exists at its location (every Asian survey site); otherwise they are borrowed from the nearest surveyed reefs.
+- The Asian sites are GCBD survey locations, so the model was trained on their past surveys. Their map values are predictions under current heat stress, not a test of the model; see the cross-validated results above for skill.
+- "Asia" follows the UN geoscheme (East, Southeast, South and West Asia; see `ASIA_COUNTRIES` in `pipeline/config.py`). Egypt's Sinai reefs are therefore excluded, and the reef-area boxes also take in some neighbouring coasts.
 - GCBD records cluster around the 2015–2016 global bleaching event.
 - The ranking supports decisions; it does not replace field assessment by restoration teams.
+- The reef-area layer is served as image tiles because its license forbids making the data downloadable; the tiles are derived data and are git-ignored. Commercial use needs written permission from UNEP-WCMC.
 
 ## Repository layout
 
