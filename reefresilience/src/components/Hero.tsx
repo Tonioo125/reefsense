@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PALETTE } from "@/lib/palette";
 
 interface HeroProps {
   onExplore: () => void;
@@ -37,12 +38,12 @@ function ReefBackground() {
     >
       <defs>
         <radialGradient id="reef-glow" cx="78%" cy="28%" r="60%">
-          <stop offset="0%" stopColor="hsl(184 52% 34%)" stopOpacity="0.09" />
-          <stop offset="100%" stopColor="hsl(184 52% 34%)" stopOpacity="0" />
+          <stop offset="0%" stopColor={PALETTE.aqua} stopOpacity="0.16" />
+          <stop offset="100%" stopColor={PALETTE.aqua} stopOpacity="0" />
         </radialGradient>
         <linearGradient id="depth-band" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="hsl(184 52% 34%)" stopOpacity="0" />
-          <stop offset="100%" stopColor="hsl(184 52% 34%)" stopOpacity="0.06" />
+          <stop offset="0%" stopColor={PALETTE.oceanBlue} stopOpacity="0" />
+          <stop offset="100%" stopColor={PALETTE.oceanBlue} stopOpacity="0.07" />
         </linearGradient>
       </defs>
       <rect width="1200" height="700" fill="url(#reef-glow)" />
@@ -50,8 +51,8 @@ function ReefBackground() {
 
       <g
         fill="none"
-        stroke="hsl(160 38% 15%)"
-        strokeOpacity="0.07"
+        stroke={PALETTE.oceanBlue}
+        strokeOpacity="0.1"
         strokeWidth="1.2"
         transform="translate(880 210)"
       >
@@ -62,8 +63,8 @@ function ReefBackground() {
 
       <g
         fill="none"
-        stroke="hsl(184 52% 28%)"
-        strokeOpacity="0.08"
+        stroke={PALETTE.coral}
+        strokeOpacity="0.22"
         strokeWidth="1.3"
         strokeLinecap="round"
       >
@@ -91,7 +92,7 @@ export default function Hero({ onExplore, reefCount, surveyCount, predictorCount
       <div className="relative mx-auto w-full max-w-[1240px] px-6">
         <div className="max-w-2xl animate-fade-in py-20">
           <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-brand">
-            <span className="h-px w-8 bg-brand/60" aria-hidden="true" />
+            <span className="h-px w-8 bg-coral" aria-hidden="true" />
             AI-powered reef intelligence
           </p>
 
@@ -111,7 +112,7 @@ export default function Hero({ onExplore, reefCount, surveyCount, predictorCount
             </Button>
             <p className="text-sm text-muted-foreground">
               Powered by environmental and ecological data
-              <span className="block text-xs">
+              <span className="block text-xs text-muted-strong">
                 Global Coral-Bleaching Database · NOAA Coral Reef Watch
               </span>
             </p>
@@ -120,7 +121,7 @@ export default function Hero({ onExplore, reefCount, surveyCount, predictorCount
           <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-4 border-t border-border/70 pt-6">
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col-reverse">
-                <dt className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+                <dt className="mt-0.5 text-xs uppercase tracking-wide text-muted-strong">
                   {stat.label}
                 </dt>
                 <dd className="font-display text-2xl font-medium tabular-nums text-foreground">

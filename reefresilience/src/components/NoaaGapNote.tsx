@@ -12,9 +12,9 @@ export default function NoaaGapNote({ reef }: { reef: Reef }) {
   return (
     <div
       role="note"
-      className="flex gap-3 rounded-md border border-[#e9c3b9] bg-[#fbf1ee] px-3 py-2.5 text-xs leading-relaxed text-[#6e2a1f]"
+      className="flex gap-3 rounded-md border border-coral/50 bg-coral-soft px-3 py-2.5 text-xs leading-relaxed text-foreground"
     >
-      <BellOff className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+      <BellOff className="mt-0.5 h-4 w-4 shrink-0 text-coral" strokeWidth={1.75} aria-hidden="true" />
       <p>
         <span className="font-semibold">Below NOAA&apos;s alert threshold.</span> Peak heat stress here
         was {dhw != null ? <span className="font-medium tabular-nums">{dhw.toFixed(1)} DHW</span> : "below 4 DHW"}{" "}

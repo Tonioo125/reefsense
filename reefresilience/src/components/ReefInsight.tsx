@@ -10,7 +10,7 @@ interface ReefInsightProps {
 
 function Label({ children }: { children: string }) {
   return (
-    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
       {children}
     </p>
   );
@@ -38,13 +38,13 @@ export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
             <dl className="mt-2 space-y-1.5 text-xs">
               {reef.asOf && (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Satellite heat stress as of</dt>
+                  <dt className="text-muted-strong">Satellite heat stress as of</dt>
                   <dd className="font-medium tabular-nums text-foreground">{reef.asOf}</dd>
                 </div>
               )}
               {reef.nearestSurveyKm != null && (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Nearest survey data</dt>
+                  <dt className="text-muted-strong">Nearest survey data</dt>
                   <dd className="font-medium tabular-nums text-foreground">
                     {reef.nearestSurveyKm} km away
                   </dd>
@@ -60,7 +60,7 @@ export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {factors.map((f) => (
                 <li key={f.feature}>
-                  <Badge variant="outline" className="bg-background font-normal">
+                  <Badge variant="outline" className="bg-secondary font-normal">
                     {f.feature}
                   </Badge>
                 </li>

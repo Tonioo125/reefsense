@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { PALETTE } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
@@ -19,10 +20,10 @@ const FOCUS_RING =
 function Logo() {
   return (
     <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="hsl(var(--primary))" />
-      <circle cx="16" cy="16" r="2.6" fill="hsl(var(--brand))" />
-      <circle cx="16" cy="16" r="6.5" fill="none" stroke="hsl(var(--brand))" strokeWidth="1.5" opacity="0.7" />
-      <circle cx="16" cy="16" r="10.5" fill="none" stroke="hsl(var(--brand))" strokeWidth="1.5" opacity="0.38" />
+      <rect width="32" height="32" rx="7" fill={PALETTE.brightTeal} />
+      <circle cx="16" cy="16" r="2.6" fill={PALETTE.coral} />
+      <circle cx="16" cy="16" r="6.5" fill="none" stroke={PALETTE.white} strokeWidth="1.5" opacity="0.85" />
+      <circle cx="16" cy="16" r="10.5" fill="none" stroke={PALETTE.white} strokeWidth="1.5" opacity="0.45" />
     </svg>
   );
 }
@@ -31,8 +32,8 @@ function StatusIndicator() {
   return (
     <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-2 py-1 sm:px-3">
       <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-brand opacity-60 motion-safe:animate-ping" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
+        <span className="absolute inline-flex h-full w-full rounded-full bg-ocean-aqua opacity-60 motion-safe:animate-ping" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ocean-blue" />
       </span>
       <span className="whitespace-nowrap text-[11px] font-medium text-secondary-foreground sm:text-xs">
         Global Reef Dataset
@@ -86,7 +87,7 @@ export default function Navbar({ active, onNavigate }: NavbarProps) {
             >
               {item.label}
               {active === item.id && (
-                <span className="absolute inset-x-3 -bottom-[13px] h-px bg-brand" aria-hidden="true" />
+                <span className="absolute inset-x-3 -bottom-[13px] h-px bg-primary" aria-hidden="true" />
               )}
             </button>
           ))}

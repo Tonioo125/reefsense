@@ -33,7 +33,7 @@ function ScaleBar({
         <span key={t} className="absolute top-0 h-full w-px bg-white/60" style={{ left: `${t * 100}%` }} />
       ))}
       <span
-        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_3px_rgba(255,255,255,0.15)]"
+        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(22,78,90,0.3)]"
         style={{ left: `${Math.min(Math.max(position, 0), 1) * 100}%`, background: color }}
       />
     </div>
@@ -45,7 +45,7 @@ export default function ReefHoverCard({ reef, colorBy }: ReefHoverCardProps) {
   const header = (
     <>
       <p className="truncate text-[12px] font-semibold leading-tight">{reef.name}</p>
-      <p className="truncate text-[10px] opacity-70">{reef.region}</p>
+      <p className="truncate text-[10px] text-muted-strong">{reef.region}</p>
     </>
   );
 
@@ -55,7 +55,7 @@ export default function ReefHoverCard({ reef, colorBy }: ReefHoverCardProps) {
       return (
         <div className="w-44">
           {header}
-          <p className="mt-2 text-[11px] opacity-80">No coral survey within 10 km</p>
+          <p className="mt-2 text-[11px] text-muted-strong">No coral survey within 10 km</p>
         </div>
       );
     }
@@ -67,12 +67,12 @@ export default function ReefHoverCard({ reef, colorBy }: ReefHoverCardProps) {
       <div className="w-44">
         {header}
         <p className="mt-2 flex items-baseline gap-1.5">
-          <span className="h-2 w-2 shrink-0 self-center rounded-full ring-1 ring-white/70" style={{ background: color }} />
+          <span className="h-2 w-2 shrink-0 self-center rounded-full ring-1 ring-foreground/20" style={{ background: color }} />
           <span className="text-[16px] font-semibold tabular-nums leading-none">{Math.round(coralCover)}%</span>
-          <span className="text-[10px] opacity-75">hard coral</span>
+          <span className="text-[10px] text-muted-strong">hard coral</span>
         </p>
         <ScaleBar gradient={CORAL_COVER_GRADIENT} position={coralCover / CORAL_COVER_MAX} color={color} />
-        {source && <p className="mt-1.5 text-[10px] opacity-70">{source}</p>}
+        {source && <p className="mt-1.5 text-[10px] text-muted-strong">{source}</p>}
       </div>
     );
   }
@@ -82,11 +82,11 @@ export default function ReefHoverCard({ reef, colorBy }: ReefHoverCardProps) {
     <div className="w-44">
       {header}
       <p className="mt-2 flex items-baseline gap-1.5">
-        <span className="h-2 w-2 shrink-0 self-center rounded-full ring-1 ring-white/70" style={{ background: color }} />
+        <span className="h-2 w-2 shrink-0 self-center rounded-full ring-1 ring-foreground/20" style={{ background: color }} />
         <span className="text-[16px] font-semibold tabular-nums leading-none">
           {formatPercent(reef.resilienceProbability)}
         </span>
-        <span className="text-[10px] opacity-75">{resilienceLabel(reef.category).toLowerCase()}</span>
+        <span className="text-[10px] text-muted-strong">{resilienceLabel(reef.category).toLowerCase()}</span>
       </p>
       <ScaleBar
         gradient={RESILIENCE_GRADIENT}
@@ -95,7 +95,7 @@ export default function ReefHoverCard({ reef, colorBy }: ReefHoverCardProps) {
         ticks={[CATEGORY_THRESHOLDS.medium, CATEGORY_THRESHOLDS.high]}
       />
       {reef.metrics.dhwMax12w != null && (
-        <p className="mt-1.5 text-[10px] opacity-70">
+        <p className="mt-1.5 text-[10px] text-muted-strong">
           Peak heat stress {reef.metrics.dhwMax12w.toFixed(1)} DHW, last 12 weeks
         </p>
       )}

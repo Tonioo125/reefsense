@@ -42,7 +42,7 @@ export default function AboutSection() {
               from each reef&apos;s own survey where one exists, otherwise from the nearest surveyed
               reefs.
             </p>
-            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-xs leading-relaxed text-muted-strong">
               Reef area: UNEP-WCMC, WorldFish Centre, WRI, TNC (2010). Global distribution of
               warm-water coral reefs, compiled from multiple sources including the Millennium Coral
               Reef Mapping Project. Version 4.1, released 2021. Cambridge (UK): UNEP World
@@ -51,7 +51,7 @@ export default function AboutSection() {
                 href="https://www.unep-wcmc.org"
                 target="_blank"
                 rel="noopener"
-                className="underline underline-offset-2 hover:text-foreground"
+                className="text-brand underline underline-offset-2 hover:text-foreground"
               >
                 unep-wcmc.org
               </a>
@@ -61,7 +61,7 @@ export default function AboutSection() {
           <ul className="divide-y divide-border border-y border-border">
             {POINTS.map((p) => (
               <li key={p.title} className="flex gap-4 py-6">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-brand">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-primary">
                   <p.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
                 </span>
                 <div>

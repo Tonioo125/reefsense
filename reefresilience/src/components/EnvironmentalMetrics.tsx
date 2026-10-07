@@ -12,7 +12,7 @@ function LevelPill({ level, note }: { level: QualitativeLevel; note?: string | n
   const tone = levelTone(level);
   return (
     <span className="flex items-center gap-2">
-      {note && <span className="text-xs text-muted-foreground">{note}</span>}
+      {note && <span className="text-xs text-muted-strong">{note}</span>}
       <span
         className="rounded-full px-2 py-0.5 text-xs font-medium"
         style={{ background: tone.soft, color: tone.text }}
@@ -27,7 +27,7 @@ function Value({ children, note }: { children: ReactNode; note?: string }) {
   return (
     <span className="block text-right">
       <span className="text-sm font-medium tabular-nums text-foreground">{children}</span>
-      {note && <span className="block text-[11px] text-muted-foreground">{note}</span>}
+      {note && <span className="block text-[11px] text-muted-strong">{note}</span>}
     </span>
   );
 }
@@ -36,7 +36,7 @@ function Row({ icon: Icon, label, children }: { icon: LucideIcon; label: string;
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <dt className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Icon className="h-4 w-4 shrink-0 text-primary/70" strokeWidth={1.75} aria-hidden="true" />
+        <Icon className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
         {label}
       </dt>
       <dd>{children}</dd>

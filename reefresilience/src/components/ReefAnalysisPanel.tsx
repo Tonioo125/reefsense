@@ -82,7 +82,7 @@ export default function ReefAnalysisPanel({
     <article key={reef.id} className="animate-slide-up p-6" aria-labelledby={headingId}>
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
             {reef.region}
           </p>
           <h2
@@ -114,7 +114,7 @@ export default function ReefAnalysisPanel({
           )}
           <Divider />
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-strong">
               Environmental predictors
             </p>
             <EnvironmentalMetrics metrics={reef.metrics} />

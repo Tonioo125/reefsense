@@ -15,10 +15,10 @@ export default function NoaaGapBanner({ summary, active, onToggle }: NoaaGapBann
     <div
       className={cn(
         "absolute left-3 top-14 z-[1000] flex max-w-[calc(100%-1.5rem)] items-center gap-2.5 rounded-lg border px-3 py-2 shadow-float backdrop-blur-md sm:left-14 sm:top-3 sm:max-w-[23rem]",
-        active ? "border-[#e9c3b9] bg-[#fbf1ee]/95" : "border-border bg-background/90",
+        active ? "border-coral/50 bg-coral-soft/95" : "border-border bg-card/90",
       )}
     >
-      <BellOff className="h-4 w-4 shrink-0 text-[#7a1f14]" strokeWidth={1.75} aria-hidden="true" />
+      <BellOff className="h-4 w-4 shrink-0 text-coral" strokeWidth={1.75} aria-hidden="true" />
       <p
         className="text-xs leading-snug text-foreground"
         title={`${summary.definition} For ${summary.nonHeatTopDriverCount} of these reefs the model's largest driver is a site attribute rather than recent heat.`}
@@ -31,7 +31,7 @@ export default function NoaaGapBanner({ summary, active, onToggle }: NoaaGapBann
         type="button"
         onClick={onToggle}
         aria-pressed={active}
-        className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="shrink-0 rounded-md bg-primary-strong px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary-strong/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {active ? "Show all" : "Highlight"}
       </button>

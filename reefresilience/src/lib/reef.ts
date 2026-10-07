@@ -4,20 +4,17 @@ import type {
   QualitativeLevel,
   ResilienceCategory,
 } from "@/types/reef";
+import { RESILIENCE } from "@/lib/palette";
 
 /**
- * Single source of truth for category colour.
+ * Single source of truth for category colour (values come from src/lib/palette.ts).
  * Concrete hex values (not CSS variables) because Leaflet writes these straight
  * onto SVG presentation attributes, where `var(--x)` would not resolve.
  */
 export const CATEGORY_COLORS: Record<
   ResilienceCategory,
   { base: string; soft: string; text: string }
-> = {
-  High: { base: "#2f8f6b", soft: "#e7f2ec", text: "#1c5c45" },
-  Medium: { base: "#d59027", soft: "#f8efdc", text: "#875311" },
-  Low: { base: "#cf5340", soft: "#f8e6e1", text: "#8d2c1f" },
-};
+> = RESILIENCE;
 
 export const CATEGORY_ORDER: ResilienceCategory[] = ["High", "Medium", "Low"];
 
@@ -140,11 +137,11 @@ export const REEF_AREA_COLOR = "rgba(32, 164, 170, 0.55)";
 export const REEF_AREA_ATTRIBUTION =
   'Reef extent: UNEP-WCMC, WorldFish, WRI, TNC (2010), v4.1 released 2021 · <a href="https://www.unep-wcmc.org" target="_blank" rel="noopener">UNEP-WCMC</a>';
 
-/** Sequential scale for hard coral cover: pale sand (bare) to deep teal (dense coral). */
+/** Sequential scale for hard coral cover: Sky Blue (bare) to Deep Teal (dense coral). */
 export const CORAL_COVER_STOPS: { pct: number; color: [number, number, number] }[] = [
-  { pct: 0, color: [236, 224, 199] },
-  { pct: 35, color: [116, 181, 161] },
-  { pct: 70, color: [22, 96, 82] },
+  { pct: 0, color: [125, 223, 242] },
+  { pct: 35, color: [0, 166, 166] },
+  { pct: 70, color: [22, 78, 90] },
 ];
 export const CORAL_COVER_NO_DATA = "#c5ccce";
 /** Cover at which the scale saturates (the legend shows "70%+"). */
@@ -185,15 +182,19 @@ export const formatSigned = (n: number): string =>
 
 /**
  * Colour for a qualitative stressor level. Note the semantics: for stressors,
- * "Low" is favourable (teal/green) and "High" is unfavourable (terracotta).
+ * "Low" is favourable (green) and "High" is unfavourable (the low-resilience red).
  */
 export function levelTone(level: QualitativeLevel): { soft: string; text: string } {
+  const tone = (c: ResilienceCategory) => ({
+    soft: CATEGORY_COLORS[c].soft,
+    text: CATEGORY_COLORS[c].text,
+  });
   switch (level) {
     case "Low":
-      return { soft: "#e7f2ec", text: "#1c5c45" };
+      return tone("High");
     case "Moderate":
-      return { soft: "#f8efdc", text: "#875311" };
+      return tone("Medium");
     case "High":
-      return { soft: "#f8e6e1", text: "#8d2c1f" };
+      return tone("Low");
   }
 }

@@ -72,7 +72,7 @@ export default function FeatureContributions({
         })}
       </ul>
 
-      <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground">
+      <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-strong">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: POSITIVE }} />
           Raises predicted resilience
@@ -83,7 +83,7 @@ export default function FeatureContributions({
         </span>
         <span className="ml-auto">log-odds</span>
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-[11px] leading-relaxed text-muted-strong">
         Contributions are model-based estimates (SHAP-style) relative to the dataset average.
       </p>
     </section>
