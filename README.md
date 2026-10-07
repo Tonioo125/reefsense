@@ -109,6 +109,7 @@ Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugi
 ## Deploy
 
 One Docker image (`Dockerfile`) serves the web app and the API from the same URL. There are two step-by-step guides:
+- [DEPLOY-AZURE.md](DEPLOY-AZURE.md): Azure Container Apps with Azure for Students, no credit card needed.
 - [DEPLOY-CLOUD-RUN.md](DEPLOY-CLOUD-RUN.md): Google Cloud Run, free with the Google Cloud trial.
 - [DEPLOY.md](DEPLOY.md): Fly.io (`fly.toml`), about $2 a week. It also covers cost and alternatives.
 
