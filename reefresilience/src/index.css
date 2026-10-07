@@ -4,38 +4,40 @@
 
 /*
   ReefResilience design tokens.
-  Palette: warm off-white backgrounds, deep forest-green primary,
-  a muted cyan/teal brand accent and earth-toned qualitative colors.
+  Tropical-ocean palette; hex source of truth is src/lib/palette.ts.
+  Values are space-separated RGB channels so Tailwind opacity modifiers work.
 */
 @layer base {
   :root {
-    --background: 56 24% 98%;
-    --foreground: 165 32% 11%;
+    --background: 245 252 252; /* Ice Ocean #F5FCFC */
+    --foreground: 22 78 90; /* Deep Teal #164E5A */
 
-    --card: 0 0% 100%;
-    --card-foreground: 165 32% 11%;
+    --card: 255 255 255;
+    --card-foreground: 22 78 90;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 165 32% 11%;
+    --popover: 255 255 255;
+    --popover-foreground: 22 78 90;
 
-    --primary: 160 38% 15%;
-    --primary-foreground: 56 30% 97%;
+    --primary: 0 166 166; /* Bright Teal #00A6A6 */
+    --primary-foreground: 255 255 255;
+    --primary-strong: 0 122 122; /* derived #007A7A */
 
-    --secondary: 150 20% 95%;
-    --secondary-foreground: 162 30% 18%;
+    --secondary: 230 248 248; /* Soft Aqua #E6F8F8 */
+    --secondary-foreground: 22 78 90;
 
-    --muted: 54 16% 95%;
-    --muted-foreground: 155 9% 42%;
+    --muted: 230 248 248;
+    --muted-foreground: 102 139 147; /* Sea Gray #668B93, text >= 14px */
+    --muted-strong: 78 114 122; /* derived #4E727A, text < 14px */
 
-    --accent: 184 40% 93%;
-    --accent-foreground: 186 56% 20%;
+    --accent: 230 248 248;
+    --accent-foreground: 22 78 90;
 
-    --brand: 184 52% 34%;
-    --brand-foreground: 56 30% 98%;
+    --brand: 0 122 122; /* text-safe teal #007A7A */
+    --brand-foreground: 255 255 255;
 
-    --border: 54 12% 88%;
-    --input: 54 12% 88%;
-    --ring: 184 44% 38%;
+    --border: 209 239 239; /* derived #D1EFEF */
+    --input: 209 239 239;
+    --ring: 0 166 166;
 
     --radius: 0.5rem;
   }
@@ -57,19 +59,19 @@
   }
 
   ::selection {
-    background: hsl(var(--brand) / 0.18);
+    background: rgb(var(--primary) / 0.18);
   }
 
   /* Thin, unobtrusive scrollbars for the analysis panel. */
   .scroll-subtle {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: rgb(var(--border)) transparent;
   }
   .scroll-subtle::-webkit-scrollbar {
     width: 8px;
   }
   .scroll-subtle::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border));
+    background-color: rgb(var(--border));
     border-radius: 9999px;
   }
 }
@@ -83,33 +85,33 @@
 /* --- Leaflet integration -------------------------------------------------- */
 .leaflet-container {
   font-family: inherit;
-  background: #e6edec;
+  background: rgb(var(--secondary));
 }
 
 .leaflet-control-attribution {
   font-size: 10px;
-  background: hsl(0 0% 100% / 0.75) !important;
-  color: hsl(var(--muted-foreground));
+  background: rgb(255 255 255 / 0.8) !important;
+  color: rgb(var(--muted-strong));
   backdrop-filter: blur(4px);
 }
 .leaflet-control-attribution a {
-  color: hsl(var(--brand));
+  color: rgb(var(--brand));
 }
 
 .leaflet-bar,
 .leaflet-bar a {
-  border-color: hsl(var(--border)) !important;
-  color: hsl(var(--primary)) !important;
+  border-color: rgb(var(--border)) !important;
+  color: rgb(var(--brand)) !important;
 }
 .leaflet-bar a:hover {
-  background: hsl(var(--secondary)) !important;
+  background: rgb(var(--secondary)) !important;
 }
 .leaflet-bar a:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid rgb(var(--ring));
   outline-offset: 2px;
 }
 .leaflet-container:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid rgb(var(--ring));
   outline-offset: -2px;
 }
 
@@ -118,25 +120,25 @@ path.leaflet-interactive:focus {
   outline: none;
 }
 
-/* Desaturate the OSM basemap so it sits quietly under the muted palette. */
-.leaflet-tile-pane {
-  filter: saturate(0.45) brightness(1.03) contrast(0.95);
+/* Cool, light OSM basemap: slightly translucent over Soft Aqua, so beige land reads ice-white and water stays aqua. */
+.basemap-tiles {
+  filter: saturate(0.8) brightness(1.05) contrast(0.92);
 }
 
-/* Hover cards for reef markers: a deep forest card with a subtle depth gradient. */
+/* Hover cards for reef markers: a white card with a thin aqua border. */
 .reef-tooltip {
-  background: linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(165 42% 10%) 100%);
-  color: hsl(var(--primary-foreground));
-  border: 1px solid hsl(0 0% 100% / 0.08);
+  background: #fff;
+  color: rgb(var(--foreground));
+  border: 1px solid rgb(var(--border));
   border-radius: 10px;
   padding: 9px 11px 10px;
   font-size: 11px;
   font-weight: 400;
   white-space: normal;
-  box-shadow: 0 12px 28px -12px rgba(16, 40, 34, 0.65);
+  box-shadow: 0 10px 24px -14px rgba(22, 78, 90, 0.35);
 }
 .reef-tooltip::before {
-  border-top-color: hsl(165 42% 10%) !important;
+  border-top-color: #fff !important;
 }
 
 /* Markers ease between their resting and hovered styles. */

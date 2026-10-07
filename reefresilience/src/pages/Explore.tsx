@@ -28,14 +28,14 @@ function PanelEmptyState() {
   return (
     <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center lg:py-16">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-        <MapPin className="h-5 w-5 text-primary/70" strokeWidth={1.75} aria-hidden="true" />
+        <MapPin className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
       </div>
       <p className="mt-4 text-sm font-medium text-foreground">Select a reef</p>
       <p className="mt-1.5 max-w-[16rem] text-sm leading-relaxed text-muted-foreground">
         Choose a marker on the map to view its predicted climate resilience and the model's
         explanation.
       </p>
-      <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-muted-strong">
         Or click anywhere on the water to test how a location responds to different heat stress.
       </p>
     </div>
@@ -103,7 +103,7 @@ function BottomSheet({ open, onClose, labelledBy, initialFocusRef, children }: B
         aria-labelledby={labelledBy}
         onKeyDown={trapFocus}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[60] max-h-[82vh] overflow-hidden rounded-t-2xl border-t border-border bg-background shadow-[0_-16px_40px_-24px_rgba(16,40,34,0.5)] duration-300 motion-reduce:transition-none",
+          "fixed inset-x-0 bottom-0 z-[60] max-h-[82vh] overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-[0_-16px_40px_-24px_rgba(22,78,90,0.3)] duration-300 motion-reduce:transition-none",
           // Visibility flips immediately on open (so focus can move in) and
           // only after the slide-out on close.
           open
@@ -271,7 +271,7 @@ export default function Explore() {
                 role="status"
                 className="pointer-events-none absolute left-1/2 top-4 z-[1000] -translate-x-1/2"
               >
-                <span className="flex items-center gap-2 rounded-full border border-border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-float backdrop-blur-md">
+                <span className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs text-muted-strong shadow-float backdrop-blur-md">
                   <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" aria-hidden="true" />
                   Loading reef dataset…
                 </span>
@@ -282,10 +282,10 @@ export default function Explore() {
               <div className="absolute inset-0 z-[1000] flex items-center justify-center p-6">
                 <div
                   role="alert"
-                  className="rounded-lg border border-border bg-background px-5 py-4 text-center shadow-float"
+                  className="rounded-lg border border-border bg-card px-5 py-4 text-center shadow-float"
                 >
                   <p className="text-sm text-muted-foreground">{error}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted-strong">
                     Is the API running? <code>uvicorn main:app --port 8000</code> in{" "}
                     <code>backend/</code>
                   </p>
@@ -305,7 +305,7 @@ export default function Explore() {
           {isMdUp && (
             <aside
               aria-label="Reef analysis"
-              className="border-t border-border bg-background md:w-full lg:flex lg:w-[400px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
+              className="border-t border-border bg-card md:w-full lg:flex lg:w-[400px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
             >
               <div className="scroll-subtle lg:flex-1 lg:overflow-y-auto">
                 {panelReef ? (

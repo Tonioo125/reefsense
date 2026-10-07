@@ -94,7 +94,7 @@ export default function HeatScenario({
       )}
 
       <div className={cn("flex items-baseline justify-between gap-3", !compact && "mt-3")}>
-        <label htmlFor={sliderId} className="text-xs text-muted-foreground">
+        <label htmlFor={sliderId} className="text-xs text-muted-strong">
           {mode === "assumed" ? "Assumed peak heat stress" : "Peak heat stress, 12 weeks"}
         </label>
         <span className="text-sm font-semibold tabular-nums text-foreground">{dhw.toFixed(1)} DHW</span>
@@ -110,13 +110,13 @@ export default function HeatScenario({
           value={dhw}
           onChange={(e) => setDhw(Number(e.target.value))}
           aria-valuetext={`${dhw.toFixed(1)} Degree Heating Weeks`}
-          className="w-full cursor-pointer accent-[hsl(var(--brand))]"
+          className="w-full cursor-pointer accent-primary"
         />
         {NOAA_TICKS.map((t) => (
           <span
             key={t.dhw}
             aria-hidden="true"
-            className="absolute top-6 -translate-x-1/2 text-[9px] leading-none text-muted-foreground"
+            className="absolute top-6 -translate-x-1/2 text-[9px] leading-none text-muted-strong"
             style={{ left: `${(t.dhw / DHW_MAX) * 100}%` }}
           >
             <span className="mx-auto mb-0.5 block h-1.5 w-px bg-muted-foreground/60" />
@@ -130,12 +130,12 @@ export default function HeatScenario({
         aria-live="polite"
       >
         {error ? (
-          <p className="text-xs text-muted-foreground">{error}</p>
+          <p className="text-xs text-muted-strong">{error}</p>
         ) : !result ? (
           <Loader2 className="h-4 w-4 text-muted-foreground motion-safe:animate-spin" aria-label="Running scenario" />
         ) : (
           <>
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color!.base }} aria-hidden="true" />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-foreground/20" style={{ background: color!.base }} aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="flex items-baseline gap-2">
                 <span className="text-lg font-semibold tabular-nums text-foreground">
@@ -154,7 +154,7 @@ export default function HeatScenario({
                   <Loader2 className="h-3 w-3 text-muted-foreground motion-safe:animate-spin" aria-hidden="true" />
                 )}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-[11px] text-muted-strong">
                 {resilienceLabel(result.category)} · {formatPercent(result.bleachingProbability)} bleaching risk
               </p>
             </div>
@@ -174,14 +174,14 @@ export default function HeatScenario({
       )}
 
       {result && result.nearestSurveyKm > FAR_SURVEY_KM && (
-        <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-snug text-muted-strong">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
           Nearest surveyed reef is {Math.round(result.nearestSurveyKm)} km away, so local conditions are
           uncertain here.
         </p>
       )}
 
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+      <p className="mt-2 text-[11px] leading-snug text-muted-strong">
         Model scenario: only heat stress changes; other conditions stay as surveyed. NOAA alerts escalate
         at 4 and 8 DHW.
       </p>

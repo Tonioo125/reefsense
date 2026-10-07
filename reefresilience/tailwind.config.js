@@ -1,5 +1,5 @@
 import animate from "tailwindcss-animate";
-
+import { PALETTE, RESILIENCE } from "./src/lib/palette.ts";
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -16,38 +16,54 @@ export default {
         display: ["Fraunces", "ui-serif", "Georgia", "serif"],
       },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "rgb(var(--border) / <alpha-value>)",
+        input: "rgb(var(--input) / <alpha-value>)",
+        ring: "rgb(var(--ring) / <alpha-value>)",
+        background: "rgb(var(--background) / <alpha-value>)",
+        foreground: "rgb(var(--foreground) / <alpha-value>)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "rgb(var(--primary) / <alpha-value>)",
+          foreground: "rgb(var(--primary-foreground) / <alpha-value>)",
+          strong: "rgb(var(--primary-strong) / <alpha-value>)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "rgb(var(--secondary) / <alpha-value>)",
+          foreground: "rgb(var(--secondary-foreground) / <alpha-value>)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "rgb(var(--muted) / <alpha-value>)",
+          foreground: "rgb(var(--muted-foreground) / <alpha-value>)",
+          strong: "rgb(var(--muted-strong) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          foreground: "rgb(var(--accent-foreground) / <alpha-value>)",
         },
         brand: {
-          DEFAULT: "hsl(var(--brand))",
-          foreground: "hsl(var(--brand-foreground))",
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          foreground: "rgb(var(--brand-foreground) / <alpha-value>)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "rgb(var(--popover) / <alpha-value>)",
+          foreground: "rgb(var(--popover-foreground) / <alpha-value>)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "rgb(var(--card) / <alpha-value>)",
+          foreground: "rgb(var(--card-foreground) / <alpha-value>)",
+        },
+        ocean: {
+          blue: PALETTE.oceanBlue,
+          aqua: PALETTE.aqua,
+          sky: PALETTE.skyBlue,
+        },
+        coral: {
+          DEFAULT: PALETTE.coral,
+          soft: PALETTE.coralSoft,
+        },
+        resilience: {
+          high: RESILIENCE.High.base,
+          medium: RESILIENCE.Medium.base,
+          low: RESILIENCE.Low.base,
         },
       },
       borderRadius: {
@@ -56,9 +72,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(16, 40, 34, 0.04), 0 10px 30px -18px rgba(16, 40, 34, 0.25)",
-        panel: "-16px 0 40px -32px rgba(16, 40, 34, 0.35)",
-        float: "0 2px 6px rgba(16, 40, 34, 0.06), 0 12px 28px -20px rgba(16, 40, 34, 0.35)",
+        soft: "0 1px 2px rgba(22, 78, 90, 0.04), 0 10px 30px -18px rgba(22, 78, 90, 0.18)",
+        panel: "-16px 0 40px -32px rgba(22, 78, 90, 0.25)",
+        float: "0 2px 6px rgba(22, 78, 90, 0.05), 0 12px 28px -20px rgba(22, 78, 90, 0.25)",
       },
       keyframes: {
         "fade-in": {

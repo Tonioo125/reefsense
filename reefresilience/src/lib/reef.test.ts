@@ -141,9 +141,9 @@ describe("coral cover", () => {
   });
 
   it("maps cover onto the sequential scale and marks missing data", () => {
-    expect(coralCoverColor(0)).toBe("rgb(236, 224, 199)");
-    expect(coralCoverColor(70)).toBe("rgb(22, 96, 82)");
-    expect(coralCoverColor(95)).toBe("rgb(22, 96, 82)");
+    expect(coralCoverColor(0)).toBe("rgb(125, 223, 242)");
+    expect(coralCoverColor(70)).toBe("rgb(22, 78, 90)");
+    expect(coralCoverColor(95)).toBe("rgb(22, 78, 90)");
     expect(coralCoverColor(null)).toBe(CORAL_COVER_NO_DATA);
   });
 });

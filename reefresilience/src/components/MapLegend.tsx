@@ -30,7 +30,7 @@ export default function MapLegend({
   onShowReefAreaChange,
 }: MapLegendProps) {
   return (
-    <div className="absolute bottom-6 left-3 z-[1000] w-[13.5rem] rounded-lg border border-border bg-background/90 p-3 shadow-float backdrop-blur-md sm:left-4">
+    <div className="absolute bottom-6 left-3 z-[1000] w-[13.5rem] rounded-lg border border-border bg-card/90 p-3 shadow-float backdrop-blur-md sm:left-4">
       <div
         role="group"
         aria-label="Colour reefs by"
@@ -45,8 +45,8 @@ export default function MapLegend({
             className={cn(
               "rounded px-2 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               colorBy === layer.value
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-strong hover:text-foreground",
             )}
           >
             {layer.label}
@@ -56,7 +56,7 @@ export default function MapLegend({
 
       {colorBy === "resilience" ? (
         <>
-          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-foreground">
+          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-strong">
             Predicted probability of high resilience
           </p>
           <ul className="space-y-1.5">
@@ -64,25 +64,25 @@ export default function MapLegend({
               <li key={cat} className="flex items-center gap-2 text-xs">
                 <span
                   aria-hidden="true"
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-foreground/20"
                   style={{ background: CATEGORY_COLORS[cat].base }}
                 />
                 <span className="text-foreground">{cat}</span>
-                <span className="ml-auto pl-3 tabular-nums text-muted-foreground">
+                <span className="ml-auto pl-3 tabular-nums text-muted-strong">
                   {categoryRangeLabel(cat)}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[10px] text-muted-foreground">Model-based estimate</p>
+          <p className="mt-2 text-[10px] text-muted-strong">Model-based estimate</p>
         </>
       ) : (
         <>
-          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-foreground">
+          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-strong">
             Hard coral cover
           </p>
           <div aria-hidden="true" className="h-2.5 w-full rounded-full" style={{ background: CORAL_COVER_GRADIENT }} />
-          <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+          <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-strong">
             <span>0%</span>
             <span>{CORAL_COVER_MAX / 2}%</span>
             <span>{CORAL_COVER_MAX}%+</span>
@@ -95,7 +95,7 @@ export default function MapLegend({
             />
             No survey within 10 km
           </p>
-          <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
+          <p className="mt-2 text-[10px] leading-snug text-muted-strong">
             Latest survey per reef (Global Coral-Bleaching Database); survey years vary.
           </p>
         </>
@@ -105,18 +105,18 @@ export default function MapLegend({
           type="checkbox"
           checked={showReefArea}
           onChange={(e) => onShowReefAreaChange(e.target.checked)}
-          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[hsl(var(--brand))]"
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
         />
         <span className="flex-1">
           <span className="flex items-center gap-2">
             Reef area
             <span
               aria-hidden="true"
-              className="h-2.5 w-4 rounded-sm border border-[rgb(14,110,120)]"
+              className="h-2.5 w-4 rounded-sm border border-primary-strong"
               style={{ background: REEF_AREA_COLOR }}
             />
           </span>
-          <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+          <span className="mt-0.5 block text-[10px] leading-snug text-muted-strong">
             Mapped coral reef extent across Asia. UNEP-WCMC v4.1 (2021).
           </span>
         </span>

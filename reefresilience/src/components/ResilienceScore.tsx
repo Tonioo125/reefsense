@@ -16,7 +16,7 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
   const pct = formatPercent(probability);
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
         Climate Resilience
       </p>
       <div className="mt-2 flex items-baseline gap-2">
@@ -32,7 +32,7 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
         className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
         style={{ background: c.soft, color: c.text }}
       >
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.base }} />
+        <span className="h-1.5 w-1.5 rounded-full ring-1 ring-foreground/15" style={{ background: c.base }} />
         {resilienceLabel(category)}
       </span>
 
@@ -47,7 +47,7 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
         />
       </div>
 
-      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-3 text-xs leading-relaxed text-muted-strong">
         Model prediction based on environmental and ecological predictors. It is the estimated
         chance the reef avoids bleaching of 10% or more of its colonies under recent satellite
         heat stress.

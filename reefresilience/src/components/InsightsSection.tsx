@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { PALETTE } from "@/lib/palette";
 import { CATEGORY_COLORS, CATEGORY_ORDER, formatPercent } from "@/lib/reef";
 import type { ModelMetrics, Reef } from "@/types/reef";
 
@@ -19,13 +20,14 @@ interface InsightsSectionProps {
   metrics: ModelMetrics | null;
 }
 
-const AXIS = { fill: "hsl(155 9% 42%)", fontSize: 11 };
+const AXIS = { fill: PALETTE.seaGrayStrong, fontSize: 11 };
 
 const tooltipStyle = {
   borderRadius: 8,
-  border: "1px solid hsl(54 12% 88%)",
+  border: `1px solid ${PALETTE.border}`,
   fontSize: 12,
-  boxShadow: "0 10px 30px -18px rgba(16,40,34,0.35)",
+  boxShadow: "0 10px 30px -18px rgba(22,78,90,0.3)",
+  color: PALETTE.deepTeal,
 };
 
 const mean = (values: number[]) =>
@@ -76,7 +78,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
   }, [reefs, metrics]);
 
   return (
-    <section id="insights" className="scroll-mt-16 border-t border-border bg-muted/30">
+    <section id="insights" className="scroll-mt-16 border-t border-border bg-secondary">
       <div className="mx-auto max-w-[1240px] px-6 py-20">
         <div className="max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-brand">Insights</p>
@@ -107,18 +109,18 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
               <h3 className="text-sm font-semibold text-foreground">
                 Reefs by predicted resilience category
               </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-strong">
                 Number of reef systems in each predicted band
               </p>
             </figcaption>
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={countData} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
-                  <CartesianGrid vertical={false} stroke="hsl(54 12% 90%)" />
+                  <CartesianGrid vertical={false} stroke={PALETTE.border} />
                   <XAxis dataKey="category" tickLine={false} axisLine={false} tick={AXIS} />
                   <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={AXIS} />
                   <Tooltip
-                    cursor={{ fill: "hsl(150 20% 95%)" }}
+                    cursor={{ fill: PALETTE.softAqua }}
                     contentStyle={tooltipStyle}
                     formatter={(value: number) => [`${value} reefs`, "Count"]}
                   />
@@ -137,7 +139,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
               <h3 className="text-sm font-semibold text-foreground">
                 Heat exposure vs predicted resilience
               </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-strong">
                 Sea surface temperature (°C) against predicted probability of high climate
                 resilience (%)
               </p>
@@ -145,7 +147,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 4, right: 12, bottom: 4, left: -18 }}>
-                  <CartesianGrid stroke="hsl(54 12% 90%)" />
+                  <CartesianGrid stroke={PALETTE.border} />
                   <XAxis
                     type="number"
                     dataKey="sst"
@@ -168,7 +170,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
                     tick={AXIS}
                   />
                   <Tooltip
-                    cursor={{ strokeDasharray: "3 3", stroke: "hsl(54 12% 80%)" }}
+                    cursor={{ strokeDasharray: "3 3", stroke: PALETTE.seaGray }}
                     contentStyle={tooltipStyle}
                     formatter={(value: number, name: string) => [
                       name === "SST" ? `${value} °C` : `${value}%`,
@@ -177,7 +179,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
                   />
                   <Scatter data={scatterData}>
                     {scatterData.map((d) => (
-                      <Cell key={d.name} fill={d.color} />
+                      <Cell key={d.name} fill={d.color} stroke={PALETTE.deepTeal} strokeOpacity={0.3} strokeWidth={0.5} />
                     ))}
                   </Scatter>
                 </ScatterChart>
@@ -186,7 +188,7 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
           </figure>
         </div>
 
-        <p className="mt-4 text-xs text-muted-foreground">
+        <p className="mt-4 text-xs text-muted-strong">
           Heat stress: NOAA Coral Reef Watch. Patterns are model-based estimates, not observed
           outcomes.
         </p>

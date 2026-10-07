@@ -5,6 +5,7 @@ import { reefAreaTileUrl } from "@/api/client";
 import HeatScenario from "@/components/HeatScenario";
 import ReefHoverCard from "@/components/ReefHoverCard";
 import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
+import { PALETTE } from "@/lib/palette";
 import { CATEGORY_COLORS, REEF_AREA_ATTRIBUTION, REEF_AREA_BOUNDS, coralCoverColor } from "@/lib/reef";
 import type { MapColorBy, Reef } from "@/types/reef";
 
@@ -29,14 +30,15 @@ function markerColor(reef: Reef, colorBy: MapColorBy) {
     : CATEGORY_COLORS[reef.category].base;
 }
 
-const GAP_RING = "#7a1f14";
+const OUTLINE = PALETTE.deepTeal;
+const GAP_RING = PALETTE.deepTeal;
 
 function markerStyle(reef: Reef, colorBy: MapColorBy, selected: boolean, highlightGaps: boolean) {
   const fillColor = markerColor(reef, colorBy);
-  if (selected) return { color: "#12332a", weight: 2.5, fillColor, fillOpacity: 1 };
-  if (highlightGaps && reef.noaaGap) return { color: GAP_RING, weight: 2.5, fillColor, fillOpacity: 1 };
-  if (highlightGaps) return { color: "#ffffff", weight: 0.5, fillColor, fillOpacity: 0.18 };
-  return { color: "#ffffff", weight: 1.5, fillColor, fillOpacity: 0.9 };
+  if (selected) return { color: OUTLINE, opacity: 1, weight: 2.5, fillColor, fillOpacity: 1 };
+  if (highlightGaps && reef.noaaGap) return { color: GAP_RING, opacity: 1, weight: 2.5, fillColor, fillOpacity: 1 };
+  if (highlightGaps) return { color: OUTLINE, opacity: 0.25, weight: 0.5, fillColor, fillOpacity: 0.18 };
+  return { color: OUTLINE, opacity: 0.55, weight: 1, fillColor, fillOpacity: 0.9 };
 }
 
 function markerRadius(reef: Reef, selected: boolean, highlightGaps: boolean) {
@@ -64,7 +66,7 @@ function ProbeLayer() {
     >
       <div className="w-[15rem] font-sans">
         <p className="text-[11px] font-medium uppercase tracking-wide text-brand">Scenario at this point</p>
-        <p className="mb-3 mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+        <p className="mb-3 mt-0.5 text-[11px] tabular-nums text-muted-strong">
           {probe.lat.toFixed(3)}°, {probe.lng.toFixed(3)}°
         </p>
         <HeatScenario
@@ -152,7 +154,7 @@ const MarkerLayer = memo(function MarkerLayer({
               mouseover: (e: LeafletMouseEvent) => {
                 const layer = e.target as LeafletCircleMarker;
                 layer.setRadius(radius + HOVER_GROWTH);
-                layer.setStyle({ color: "#12332a", weight: 2.5, fillOpacity: 1 });
+                layer.setStyle({ color: OUTLINE, opacity: 1, weight: 2.5, fillOpacity: 1 });
                 layer.bringToFront();
                 onHover(reef);
               },
@@ -209,6 +211,8 @@ export default function ResilienceMap({
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          className="basemap-tiles"
+          opacity={0.85}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
