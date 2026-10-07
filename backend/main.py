@@ -8,10 +8,12 @@ satellite heat stress. "Probability of high climate resilience" is reported as 1
 feature contributions are sign-flipped so that positive values raise predicted resilience.
 """
 import base64
+import csv
 import json
 import os
 import sys
 import threading
+import time
 from collections import Counter
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -23,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from news import news_for_region
@@ -35,13 +38,23 @@ HEAT_SERIES_PATH = ROOT / "data/processed/crw_heat_grid_series.json"  # pipeline
 EMPTY_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
 TILE_CACHE = {"Cache-Control": "public, max-age=86400"}
+# Built ReefResilience app (`npm run build` in reefresilience/). When present, it is served from this
+# origin too (see the end of this file), so the deployed site needs no CORS or proxy.
+WEB_DIST = Path(os.getenv("REEFCAST_WEB_DIST", ROOT / "reefresilience/dist")).resolve()
+# Comma-separated countries whose case-study reefs (data/sites/demo_sites.csv) get their news fetched at
+# startup and kept fresh, e.g. "Indonesia". Off by default so local runs do not call Mongabay on every reload.
+WARM_NEWS_COUNTRIES = {c.strip() for c in os.getenv("REEFCAST_WARM_NEWS", "").split(",") if c.strip()}
+NEWS_WARM_INTERVAL_S = 5 * 3600  # below news.CACHE_TTL_S (6 h), so warmed regions never go cold
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 @asynccontextmanager
 async def lifespan(_app):
-    # Load the model and survey index in the background, so the first /api/predict
-    # (e.g. the first drag of the heat slider) does not wait for it.
-    threading.Thread(target=warm_scorer, daemon=True).start()
+    # Build the slow caches in the background, so the first visitor does not wait for them: the model and
+    # survey index (first /api/predict, e.g. the first drag of the heat slider), the reef list and the
+    # bleaching-history replay.
+    threading.Thread(target=warm_caches, daemon=True).start()
+    if WARM_NEWS_COUNTRIES:
+        threading.Thread(target=warm_news, args=(WARM_NEWS_COUNTRIES,), daemon=True).start()
     yield
 
 
@@ -100,11 +113,40 @@ def load_data():
     return _cached()[0]
 
 
-def warm_scorer():
+def warm_caches():
     try:
+        list_reefs()
         scorer()
+        bleaching_history_payload()
     except HTTPException:
-        pass  # no trained model yet; /api/predict reports it
+        pass  # no scored sites or trained model yet; the endpoints report it
+    except Exception as err:  # the endpoint itself will raise it; the warm-up only logs it
+        print(f"Cache warm-up failed: {err!r}", file=sys.stderr)
+
+
+def case_study_sites():
+    """Scored reefs from the hand-made site list (data/sites/demo_sites.csv): Bali, Nusa Penida and others."""
+    from config import SITES_CSV
+    with open(SITES_CSV, newline="") as f:
+        ids = {row["site_id"] for row in csv.DictReader(f)}
+    return [s for s in scored_sites() if s["site_id"] in ids]
+
+
+def warm_news(countries):
+    """Fetch, and keep refreshing, the news for case-study reefs in these countries. An uncached Mongabay
+    search takes 10-20 s, which a first-time visitor would otherwise wait through on the reef they open."""
+    while True:
+        try:
+            regions = {}
+            for site in case_study_sites():
+                country = nearest_country(site)
+                if country in countries:
+                    regions[site["region"]] = country
+            for region, country in regions.items():
+                news_for_region(region, country=country)
+        except Exception as err:  # a warm-up problem must never take the API down
+            print(f"News warm-up failed: {err!r}", file=sys.stderr)
+        time.sleep(NEWS_WARM_INTERVAL_S)
 
 
 @lru_cache(maxsize=1)
@@ -275,7 +317,7 @@ def find_site(reef_id):
 
 # --- Original ReefCast endpoints -----------------------------------------------
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])  # HEAD: some uptime monitors use it
 def health():
     ready = DATA_PATH.exists()
     unscored = [] if not ready else [s["site_id"] for s in load_data()["sites"]
@@ -498,3 +540,31 @@ def predict(body: PredictInput):
         "contributions": resilience_contributions(contributions, TOP_CONTRIBUTIONS),
         "nearestSurveyKm": round(nearest_km, 1),
     }
+
+
+# --- Web app (production) ---------------------------------------------------------
+# Registered last, so every /api route above takes precedence. In development Vite serves the app instead.
+
+class HashedAssets(StaticFiles):
+    """Vite's /assets files carry a content hash in their names, so browsers may cache them indefinitely."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+if (WEB_DIST / "index.html").is_file():
+    if (WEB_DIST / "assets").is_dir():
+        app.mount("/assets", HashedAssets(directory=WEB_DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def web_app(path: str):
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        file = (WEB_DIST / path).resolve()
+        if path and file.is_file() and WEB_DIST in file.parents:
+            return FileResponse(file, headers={"Cache-Control": "public, max-age=3600"})  # logos, favicons
+        # The app itself: never cached, so a redeploy shows up on the next page load.
+        return FileResponse(WEB_DIST / "index.html", headers={"Cache-Control": "no-cache"})
