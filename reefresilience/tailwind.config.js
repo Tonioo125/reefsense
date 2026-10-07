@@ -89,11 +89,16 @@ export default {
           from: { transform: "translateY(100%)" },
           to: { transform: "translateY(0)" },
         },
+        "hero-in": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out both",
         "slide-up": "slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
         "sheet-up": "sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "hero-in": "hero-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

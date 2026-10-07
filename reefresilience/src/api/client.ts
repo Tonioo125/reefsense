@@ -48,7 +48,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { Accept: "application/json", ...init?.headers },
     });
   } catch {
-    throw new ApiError("The ReefResilience API is unreachable.");
+    throw new ApiError("The ReefSense API is unreachable.");
   }
   if (!res.ok) throw new ApiError(`Request to ${path} failed (${res.status})`, res.status);
   return (await res.json()) as T;

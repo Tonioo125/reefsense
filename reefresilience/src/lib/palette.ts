@@ -1,5 +1,5 @@
 /**
- * ReefResilience colour palette: the single source of truth for every hex value.
+ * ReefSense colour palette: the single source of truth for every hex value.
  * Used by tailwind.config.js (Tailwind tokens), src/lib/reef.ts (map, legend, charts) and
  * components that need hex in SVG/canvas attributes. src/index.css mirrors these as RGB
  * CSS variables; src/lib/palette.test.ts keeps the two in sync.

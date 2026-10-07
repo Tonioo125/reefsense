@@ -11,6 +11,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import Reveal from "@/components/Reveal";
+import { useInView } from "@/hooks/useInView";
+import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import { PALETTE } from "@/lib/palette";
 import { CATEGORY_COLORS, CATEGORY_ORDER, formatPercent } from "@/lib/reef";
 import type { ModelMetrics, Reef } from "@/types/reef";
@@ -32,6 +35,114 @@ const tooltipStyle = {
 
 const mean = (values: number[]) =>
   values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+
+interface CountDatum {
+  category: string;
+  count: number;
+  color: string;
+}
+
+interface ScatterDatum {
+  sst: number;
+  prob: number;
+  name: string;
+  color: string;
+}
+
+/**
+ * Charts mount only once their box scrolls into view, so Recharts plays its
+ * entry animation where the reader can see it. The fixed-height box is always
+ * rendered, so nothing shifts when the chart appears.
+ */
+function CategoryChart({ data }: { data: CountDatum[] }) {
+  const [ref, inView] = useInView<HTMLDivElement>({ threshold: 0.25 });
+  const reduceMotion = usePrefersReducedMotion();
+  return (
+    <div ref={ref} className="mt-5 h-64">
+      {inView && (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
+            <CartesianGrid vertical={false} stroke={PALETTE.border} />
+            <XAxis dataKey="category" tickLine={false} axisLine={false} tick={AXIS} />
+            <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={AXIS} />
+            <Tooltip
+              cursor={{ fill: PALETTE.softAqua }}
+              contentStyle={tooltipStyle}
+              formatter={(value: number) => [`${value} reefs`, "Count"]}
+            />
+            <Bar
+              dataKey="count"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={72}
+              isAnimationActive={!reduceMotion}
+              animationDuration={900}
+              animationEasing="ease-out"
+            >
+              {data.map((d) => (
+                <Cell key={d.category} fill={d.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+function HeatScatterChart({ data }: { data: ScatterDatum[] }) {
+  const [ref, inView] = useInView<HTMLDivElement>({ threshold: 0.25 });
+  const reduceMotion = usePrefersReducedMotion();
+  return (
+    <div ref={ref} className="mt-5 h-64">
+      {inView && (
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 4, right: 12, bottom: 4, left: -18 }}>
+            <CartesianGrid stroke={PALETTE.border} />
+            <XAxis
+              type="number"
+              dataKey="sst"
+              name="SST"
+              unit="°C"
+              domain={["dataMin - 0.5", "dataMax + 0.5"]}
+              tickFormatter={(v: number) => v.toFixed(0)}
+              tickLine={false}
+              axisLine={false}
+              tick={AXIS}
+            />
+            <YAxis
+              type="number"
+              dataKey="prob"
+              name="Predicted probability"
+              unit="%"
+              domain={[0, 100]}
+              tickLine={false}
+              axisLine={false}
+              tick={AXIS}
+            />
+            <Tooltip
+              cursor={{ strokeDasharray: "3 3", stroke: PALETTE.seaGray }}
+              contentStyle={tooltipStyle}
+              formatter={(value: number, name: string) => [
+                name === "SST" ? `${value} °C` : `${value}%`,
+                name === "SST" ? "Sea surface temp" : "Predicted probability",
+              ]}
+            />
+            <Scatter
+              data={data}
+              isAnimationActive={!reduceMotion}
+              animationDuration={900}
+              animationEasing="ease-out"
+            >
+              {data.map((d) => (
+                <Cell key={d.name} fill={d.color} stroke={PALETTE.deepTeal} strokeOpacity={0.3} strokeWidth={0.5} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
 
 export default function InsightsSection({ reefs, metrics }: InsightsSectionProps) {
   const { countData, scatterData, stats } = useMemo(() => {
@@ -81,30 +192,32 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
     <section id="insights" className="scroll-mt-16 border-t border-border bg-secondary">
       <div className="mx-auto max-w-[1240px] px-6 py-20">
         <div className="max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-brand">Insights</p>
-          <h2 className="mt-3 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
-            Patterns across the global dataset
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+          <Reveal>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-brand">Insights</p>
+            <h2 className="mt-3 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+              Patterns across the global dataset
+            </h2>
+          </Reveal>
+          <Reveal as="p" delay={100} className="mt-4 text-base leading-relaxed text-muted-foreground">
             Model-based estimates for every mapped reef under its most recent 12 weeks of
             satellite heat stress. The model is validated on surveys from ecoregions it never saw
             during training, and compared against heat stress alone.
-          </p>
+          </Reveal>
         </div>
 
         <dl className="mt-10 grid grid-cols-2 gap-y-6 border-y border-border py-6 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-border">
-          {stats.map((s) => (
-            <div key={s.label} className="flex flex-col-reverse lg:px-6 lg:first:pl-0">
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={i * 80} className="flex flex-col-reverse lg:px-6 lg:first:pl-0">
               <dt className="mt-1 text-sm text-muted-foreground">{s.label}</dt>
               <dd className="font-display text-3xl font-medium tabular-nums text-foreground">
                 {s.value}
               </dd>
-            </div>
+            </Reveal>
           ))}
         </dl>
 
         <div className="mt-8 grid grid-cols-1 rounded-lg border border-border bg-card lg:grid-cols-2 lg:divide-x lg:divide-border">
-          <figure className="p-6">
+          <Reveal as="figure" className="p-6">
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">
                 Reefs by predicted resilience category
@@ -113,28 +226,10 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
                 Number of reef systems in each predicted band
               </p>
             </figcaption>
-            <div className="mt-5 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={countData} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
-                  <CartesianGrid vertical={false} stroke={PALETTE.border} />
-                  <XAxis dataKey="category" tickLine={false} axisLine={false} tick={AXIS} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={AXIS} />
-                  <Tooltip
-                    cursor={{ fill: PALETTE.softAqua }}
-                    contentStyle={tooltipStyle}
-                    formatter={(value: number) => [`${value} reefs`, "Count"]}
-                  />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={72}>
-                    {countData.map((d) => (
-                      <Cell key={d.category} fill={d.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </figure>
+            <CategoryChart data={countData} />
+          </Reveal>
 
-          <figure className="border-t border-border p-6 lg:border-t-0">
+          <Reveal as="figure" delay={120} className="border-t border-border p-6 lg:border-t-0">
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">
                 Heat exposure vs predicted resilience
@@ -144,54 +239,14 @@ export default function InsightsSection({ reefs, metrics }: InsightsSectionProps
                 resilience (%)
               </p>
             </figcaption>
-            <div className="mt-5 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 4, right: 12, bottom: 4, left: -18 }}>
-                  <CartesianGrid stroke={PALETTE.border} />
-                  <XAxis
-                    type="number"
-                    dataKey="sst"
-                    name="SST"
-                    unit="°C"
-                    domain={["dataMin - 0.5", "dataMax + 0.5"]}
-                    tickFormatter={(v: number) => v.toFixed(0)}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={AXIS}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="prob"
-                    name="Predicted probability"
-                    unit="%"
-                    domain={[0, 100]}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={AXIS}
-                  />
-                  <Tooltip
-                    cursor={{ strokeDasharray: "3 3", stroke: PALETTE.seaGray }}
-                    contentStyle={tooltipStyle}
-                    formatter={(value: number, name: string) => [
-                      name === "SST" ? `${value} °C` : `${value}%`,
-                      name === "SST" ? "Sea surface temp" : "Predicted probability",
-                    ]}
-                  />
-                  <Scatter data={scatterData}>
-                    {scatterData.map((d) => (
-                      <Cell key={d.name} fill={d.color} stroke={PALETTE.deepTeal} strokeOpacity={0.3} strokeWidth={0.5} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-          </figure>
+            <HeatScatterChart data={scatterData} />
+          </Reveal>
         </div>
 
-        <p className="mt-4 text-xs text-muted-strong">
+        <Reveal as="p" variant="fade-in" className="mt-4 text-xs text-muted-strong">
           Heat stress: NOAA Coral Reef Watch. Patterns are model-based estimates, not observed
           outcomes.
-        </p>
+        </Reveal>
       </div>
     </section>
   );

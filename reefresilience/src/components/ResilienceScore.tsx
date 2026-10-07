@@ -1,3 +1,4 @@
+import { useCountUp } from "@/hooks/useCountUp";
 import { CATEGORY_COLORS, formatPercent, resilienceLabel } from "@/lib/reef";
 import type { ResilienceCategory } from "@/types/reef";
 
@@ -14,14 +15,17 @@ interface ResilienceScoreProps {
 export default function ResilienceScore({ probability, category }: ResilienceScoreProps) {
   const c = CATEGORY_COLORS[category];
   const pct = formatPercent(probability);
+  // The panel remounts per reef, so this counts up from 0 on every selection.
+  const shown = useCountUp(probability);
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
         Climate Resilience
       </p>
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="font-display text-6xl font-medium leading-none tracking-tight text-foreground">
-          {pct}
+        <span className="font-display text-6xl font-medium leading-none tracking-tight tabular-nums text-foreground">
+          <span aria-hidden="true">{formatPercent(shown)}</span>
+          <span className="sr-only">{pct}</span>
         </span>
       </div>
       <p className="mt-2.5 max-w-[22rem] text-sm leading-relaxed text-muted-foreground">
@@ -42,8 +46,8 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
         className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
       >
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: pct, background: c.base }}
+          className="h-full w-full origin-left rounded-full"
+          style={{ transform: `scaleX(${shown})`, background: c.base }}
         />
       </div>
 
