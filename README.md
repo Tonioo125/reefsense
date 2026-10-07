@@ -2,6 +2,8 @@
 
 **Near-term coral bleaching outlook and restoration priorities for Indonesian reefs.**
 
+**Live demo:** https://reefcast.fly.dev
+
 > Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefResilience web app in `reefresilience/` is the main frontend.
 
 ## The problem
@@ -104,6 +106,10 @@ API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/exp
 
 Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugia_50reefs_plus` (0/1), `connectivity` and `in_mpa` (0/1).
 
+## Deploy
+
+One Docker image (`Dockerfile`) serves the web app and the API from the same URL. It runs on a single always-on Fly.io Machine (`fly.toml`) for about $2 a week. The step-by-step guide, cost and alternatives are in [DEPLOY.md](DEPLOY.md).
+
 ## Limitations
 
 - Training heat metrics in GCBD come from CoRTAD; live inputs come from NOAA CRW. Both measure accumulated heat stress, but they are different products.
@@ -126,4 +132,5 @@ backend/    FastAPI service (sites, model metrics, ranking)
 reefresilience/  ReefResilience web app (React + TypeScript + Leaflet + Recharts)
 frontend/   original React + Leaflet app
 data/       raw (git-ignored), processed outputs, demo site list
+Dockerfile, fly.toml, DEPLOY.md   deployment (one image: web app + API)
 ```
