@@ -2,7 +2,7 @@
 # packages (geopandas is only used by pipeline/05_reef_area_tiles.py), so the image stays small.
 #
 # Pin scikit-learn, lightgbm, pandas and numpy to the versions that trained
-# data/processed/bleaching_model.joblib (see DEPLOY.md, step 2), so the model loads exactly as it does locally.
+# data/processed/bleaching_model.joblib (see DEPLOY.md or DEPLOY-CLOUD-RUN.md), so the model loads exactly as it does locally.
 fastapi>=0.110
 uvicorn[standard]>=0.29
 requests>=2.31

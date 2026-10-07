@@ -1,5 +1,7 @@
 # Deploying ReefSense
 
+> **Free option:** if you're eligible for the Google Cloud free trial, deploy the same image to Cloud Run with [DEPLOY-CLOUD-RUN.md](DEPLOY-CLOUD-RUN.md). It costs nothing, and the app survives a zone failure and is restarted automatically if it freezes. This guide covers Fly.io, the paid backup (about $2 a week).
+
 One Docker image serves the web app and the API from one URL, on one always-on [Fly.io](https://fly.io) Machine. It costs about **$2 for a week** ([Fly.io pricing](https://docs.fly.io/about/pricing)). Plan for 30–45 minutes the first time.
 
 ```

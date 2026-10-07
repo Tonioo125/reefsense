@@ -2,7 +2,7 @@
 
 **Near-term coral bleaching outlook and restoration priorities for Indonesian reefs.**
 
-**Live demo:** https://reefcast.fly.dev
+**Live demo:** _(add the service URL after deploying)_
 
 > Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefResilience web app in `reefresilience/` is the main frontend.
 
@@ -108,7 +108,9 @@ Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugi
 
 ## Deploy
 
-One Docker image (`Dockerfile`) serves the web app and the API from the same URL. It runs on a single always-on Fly.io Machine (`fly.toml`) for about $2 a week. The step-by-step guide, cost and alternatives are in [DEPLOY.md](DEPLOY.md).
+One Docker image (`Dockerfile`) serves the web app and the API from the same URL. There are two step-by-step guides:
+- [DEPLOY-CLOUD-RUN.md](DEPLOY-CLOUD-RUN.md): Google Cloud Run, free with the Google Cloud trial.
+- [DEPLOY.md](DEPLOY.md): Fly.io (`fly.toml`), about $2 a week. It also covers cost and alternatives.
 
 ## Limitations
 

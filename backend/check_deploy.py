@@ -41,7 +41,7 @@ def main_check():
     for w in caught:
         if "version" in str(w.message).lower():
             print(f"WARNING: {w.message}\n  Pin these packages in backend/requirements-deploy.txt to the "
-                  "versions that trained the model (DEPLOY.md, step 2).")
+                  "versions that trained the model (see the deploy guide).")
 
     reefs = main.scored_sites()
     result = main.predict(main.PredictInput(**NUSA_PENIDA))
