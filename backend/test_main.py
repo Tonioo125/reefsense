@@ -2,6 +2,9 @@
 
 The endpoint tests use the real scored data and model, and are skipped until the pipeline has run.
 """
+import json
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -160,3 +163,25 @@ def test_bleaching_history_points_add_up_to_the_yearly_totals(client):
     for y in body["years"]:
         assert 0 <= y["bleachedShare"] <= 1
         assert sum(c["surveys"] for c in y["topCountries"]) <= y["surveys"]
+
+
+def test_scored_data_is_cached_until_the_file_changes(tmp_path, monkeypatch):
+    path = tmp_path / "sites_scored.json"
+    site = {"site_id": "A", "bleaching_probability": 0.2}
+    path.write_text(json.dumps({"sites": [site]}))
+    monkeypatch.setattr(main, "DATA_PATH", path)
+    first = main.load_data()
+    assert main.load_data() is first  # parsed once
+    assert main.find_site("A")["bleaching_probability"] == 0.2
+
+    path.write_text(json.dumps({"sites": [{**site, "bleaching_probability": 0.7}]}))
+    os.utime(path, ns=(path.stat().st_atime_ns, path.stat().st_mtime_ns + 1_000_000))
+    assert main.find_site("A")["bleaching_probability"] == 0.7  # re-read after a pipeline run
+
+
+@needs_data
+def test_model_endpoint_reports_validation_when_available(client):
+    body = client.get("/api/model").json()
+    assert "metrics" in body and "validation" in body
+    if main.VALIDATION_PATH.exists():
+        assert {"time_splits", "country_holdouts", "cyclone_confound"} <= body["validation"].keys()

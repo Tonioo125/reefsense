@@ -78,13 +78,26 @@ NOAA_GAP_DEFINITION = (
 HEAT_FEATURES = {"TSA_DHW", "TSA_DHWMax", "SSTA_DHW", "SSTA", "TSA"}
 
 
-def load_data():
+@lru_cache(maxsize=1)
+def _scored_data(path, mtime_ns):
+    """Parsed sites_scored.json plus lookups, cached until the file changes (e.g. a pipeline re-run)."""
+    data = json.loads(Path(path).read_text())
+    scored = [s for s in data["sites"] if s.get("bleaching_probability") is not None]
+    return data, scored, {s["site_id"]: s for s in scored}
+
+
+def _cached():
     if not DATA_PATH.exists():
         raise HTTPException(
             status_code=503,
             detail=f"No scored sites at {DATA_PATH}. Run the pipeline (pipeline/04_score_sites.py) first.",
         )
-    return json.loads(DATA_PATH.read_text())
+    return _scored_data(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns)
+
+
+def load_data():
+    """The scored-sites file. Shared between requests: treat it as read-only."""
+    return _cached()[0]
 
 
 def warm_scorer():
@@ -250,11 +263,11 @@ def heat_points(site):
 
 
 def scored_sites():
-    return [s for s in load_data()["sites"] if s.get("bleaching_probability") is not None]
+    return _cached()[1]
 
 
 def find_site(reef_id):
-    site = next((s for s in scored_sites() if s["site_id"] == reef_id), None)
+    site = _cached()[2].get(reef_id)
     if site is None:
         raise HTTPException(status_code=404, detail=f"No scored reef with id {reef_id!r}.")
     return site
@@ -285,9 +298,13 @@ def reef_area_tile(z: int, x: int, y: int):
     return Response(EMPTY_TILE, media_type="image/png", headers=TILE_CACHE)
 
 
+VALIDATION_PATH = ROOT / "data/processed/model_validation.json"  # pipeline/06_validate_model.py
+
+
 @app.get("/api/model")
 def model():
-    return {"metrics": load_data().get("model", {}), "criteria": CRITERIA}
+    validation = json.loads(VALIDATION_PATH.read_text()) if VALIDATION_PATH.exists() else None
+    return {"metrics": load_data().get("model", {}), "criteria": CRITERIA, "validation": validation}
 
 
 @app.get("/api/ranking")
@@ -322,9 +339,16 @@ def ranking(
 
 # --- ReefResilience endpoints ----------------------------------------------------
 
+@lru_cache(maxsize=1)
+def _reef_list_json(path, mtime_ns):
+    return json.dumps([to_reef(s) for s in scored_sites()], separators=(",", ":")).encode()
+
+
 @app.get("/api/reefs")
 def list_reefs():
-    return [to_reef(s) for s in scored_sites()]
+    # Built and encoded once per data version: thousands of reefs, requested on every page load.
+    _cached()  # 503 before the pipeline has run
+    return Response(_reef_list_json(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns), media_type="application/json")
 
 
 @app.get("/api/reefs/{reef_id}")

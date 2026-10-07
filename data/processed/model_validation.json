@@ -1,0 +1,88 @@
+{
+  "time_splits": [
+    {
+      "split": "Train on surveys to 2012, test on 2013\u20132020",
+      "train_n": 17364,
+      "n": 5822,
+      "bleached_rate": 0.213,
+      "model_roc_auc": 0.822,
+      "dhw_roc_auc": 0.778,
+      "model_pr_auc": 0.655
+    },
+    {
+      "split": "Train on surveys to 2015, test on the 2016 global bleaching event",
+      "train_n": 19973,
+      "n": 1159,
+      "bleached_rate": 0.422,
+      "model_roc_auc": 0.771,
+      "dhw_roc_auc": 0.726,
+      "model_pr_auc": 0.681
+    }
+  ],
+  "country_holdouts": [
+    {
+      "country": "Indonesia",
+      "n": 937,
+      "bleached_rate": 0.15,
+      "model_roc_auc": 0.744,
+      "dhw_roc_auc": 0.68,
+      "model_pr_auc": 0.5
+    },
+    {
+      "country": "Japan",
+      "n": 842,
+      "bleached_rate": 0.336,
+      "model_roc_auc": 0.759,
+      "dhw_roc_auc": 0.767,
+      "model_pr_auc": 0.676
+    }
+  ],
+  "cyclone_confound": {
+    "japan_rows": 842,
+    "japan_cyclone_range_p10_p90": [
+      56.552,
+      69.916
+    ],
+    "share_of_rows_in_that_range_that_are_japanese": 0.11,
+    "cyclone_share_of_explanation_japan": 0.156,
+    "cyclone_share_of_explanation_elsewhere": 0.055,
+    "spatial_cv_roc_auc_with": 0.754,
+    "spatial_cv_roc_auc_without": 0.763,
+    "by_country": {
+      "Japan": {
+        "with_cyclone_roc_auc": 0.8,
+        "without_cyclone_roc_auc": 0.786
+      },
+      "Indonesia": {
+        "with_cyclone_roc_auc": 0.715,
+        "without_cyclone_roc_auc": 0.725
+      },
+      "Everywhere else": {
+        "with_cyclone_roc_auc": 0.752,
+        "without_cyclone_roc_auc": 0.762
+      }
+    },
+    "noaa_gap_with": {
+      "flagged": 851,
+      "by_country": {
+        "Japan": 425,
+        "Indonesia": 109,
+        "Malaysia": 89,
+        "Philippines": 63,
+        "India": 54,
+        "Maldives": 26
+      }
+    },
+    "noaa_gap_without": {
+      "flagged": 861,
+      "by_country": {
+        "Japan": 386,
+        "Malaysia": 112,
+        "Indonesia": 99,
+        "Philippines": 85,
+        "India": 54,
+        "Maldives": 30
+      }
+    }
+  }
+}

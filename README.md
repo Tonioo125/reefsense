@@ -46,6 +46,21 @@ Out-of-fold scores from 5-fold cross-validation grouped by ecoregion (each fold 
 
 The NOAA-style rule "DHW ≥ 4" catches only 26% of bleaching events globally (22% in the Coral Triangle), which supports the premise above: most recorded bleaching happens below the heat level at which standard alerts escalate.
 
+#### Stress tests (`pipeline/06_validate_model.py`)
+
+The ecoregion split above holds out places but not time. These tests hold out later years, and whole countries, and compare against heat alone (DHW) on exactly the same surveys.
+
+| Test | Test surveys | Bleached | Model ROC AUC | DHW alone |
+|---|---|---|---|---|
+| Train on surveys to 2012, test on 2013–2020 | 5,822 | 21% | **0.822** | 0.778 |
+| Train on surveys to 2015, test on the 2016 global bleaching event | 1,159 | 42% | **0.771** | 0.726 |
+| Indonesia never seen in training | 937 | 15% | **0.744** | 0.680 |
+| Japan never seen in training | 842 | 34% | 0.759 | **0.767** |
+
+The model beats heat alone on later years, on the 2016 event and on an unseen Indonesia. In Japan, heat alone does as well: there the extra site information does not add skill.
+
+**Cyclone frequency is not a stand-in for "Japan".** Japan's cyclone values are shared widely (only 11% of surveys in Japan's range are Japanese), though the model leans on the feature more there (16% of a Japanese prediction's explanation vs 6% elsewhere). Removing it changes little: spatial cross-validation ROC AUC 0.763 without it vs 0.754 with it, and the NOAA-gap map flags 861 reefs instead of 851, still led by Japan (386 vs 425). The Japanese flags therefore come from several site conditions together, not from that one feature.
+
 ## Data sources
 
 | Dataset | Use | License |
@@ -74,6 +89,7 @@ python pipeline/03_train_bleaching.py --region global
 python pipeline/04_score_sites.py         # writes data/processed/sites_scored.json
 python pipeline/05_reef_area_tiles.py     # optional reef-area map layer for Asia (~6 min); needs the UNEP-WCMC
 #   coral reef zip in data/raw/wcmc/ (https://data.unep-wcmc.org/datasets/1)
+python pipeline/06_validate_model.py      # optional stress tests (~35 s): later years, held-out countries, cyclone check
 
 # 2. API
 pip install -r backend/requirements.txt
@@ -97,7 +113,8 @@ Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugi
 - Non-heat conditions come from the reef's own GCBD survey when one exists at its location (every Asian survey site); otherwise they are borrowed from the nearest surveyed reefs.
 - The Asian sites are GCBD survey locations, so the model was trained on their past surveys. Their map values are predictions under current heat stress, not a test of the model; see the cross-validated results above for skill.
 - "Asia" follows the UN geoscheme (East, Southeast, South and West Asia; see `ASIA_COUNTRIES` in `pipeline/config.py`). Egypt's Sinai reefs are therefore excluded, and the reef-area boxes also take in some neighbouring coasts.
-- GCBD records cluster around the 2015–2016 global bleaching event.
+- GCBD records cluster around the 2015–2016 global bleaching event, and end in 2020.
+- In Japan the model does not beat heat alone when Japan is held out of training (see stress tests).
 - The ranking supports decisions; it does not replace field assessment by restoration teams.
 - The reef-area layer is served as image tiles because its license forbids making the data downloadable; the tiles are derived data and are git-ignored. Commercial use needs written permission from UNEP-WCMC.
 
