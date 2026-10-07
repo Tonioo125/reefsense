@@ -14,7 +14,9 @@ import sys
 import threading
 from collections import Counter
 from contextlib import asynccontextmanager
+from datetime import date, timedelta
 from functools import lru_cache
+from math import cos, radians
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Response
@@ -23,9 +25,12 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from news import news_for_region
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
 REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
+HEAT_SERIES_PATH = ROOT / "data/processed/crw_heat_grid_series.json"  # pipeline/02b_fetch_crw_grid.py
 # Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
 EMPTY_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
@@ -171,6 +176,19 @@ def country_of(site):
     return site["region"].rsplit(", ", 1)[-1]
 
 
+def nearest_country(site):
+    """Country for a reef: from its "Province, Country" label, or else the nearest such reef's (demo sites
+    are labelled with a local place name only)."""
+    if ", " in site["region"]:
+        return country_of(site)
+    labelled = [s for s in load_data()["sites"] if ", " in s["region"]]
+    if not labelled:
+        return None
+    lat, lon = site["lat"], site["lon"]
+    nearest = min(labelled, key=lambda s: (s["lat"] - lat) ** 2 + ((s["lon"] - lon) * cos(radians(lat))) ** 2)
+    return country_of(nearest)
+
+
 def to_reef(site):
     """GET /api/reefs item. Explanation fields live in GET /api/reefs/{id}/explanation."""
     p = site["bleaching_probability"]
@@ -205,6 +223,30 @@ def to_reef(site):
         "asOf": heat.get("as_of"),
         "noaaGap": is_noaa_gap(site),
     }
+
+
+@lru_cache(maxsize=2)
+def _grid_series(mtime):
+    return json.loads(HEAT_SERIES_PATH.read_text())
+
+
+def grid_series():
+    """Daily DHW per GCBD site from the regional grid download, or {} before 02b has run."""
+    if not HEAT_SERIES_PATH.exists():
+        return {}
+    return _grid_series(HEAT_SERIES_PATH.stat().st_mtime)
+
+
+def heat_points(site):
+    """[{date, dhw}] for a site: the per-site series (demo sites) or the grid series (GCBD sites)."""
+    series = site["heat"].get("series") or []
+    if series:
+        return [{"date": p["t"], "dhw": p["dhw"]} for p in series]
+    grid = grid_series().get(site["site_id"])
+    if not grid:
+        return []
+    start = date.fromisoformat(grid["start"])
+    return [{"date": (start + timedelta(days=i)).isoformat(), "dhw": v} for i, v in enumerate(grid["dhw"])]
 
 
 def scored_sites():
@@ -304,6 +346,86 @@ def get_explanation(reef_id: str):
         "summary": insight(reef["resilienceProbability"], contributions,
                            site["heat"].get("dhw_max_12w") or 0.0),
     }
+
+
+@app.get("/api/reefs/{reef_id}/heat-history")
+def heat_history(reef_id: str):
+    """Daily NOAA Coral Reef Watch Degree Heating Weeks at the reef's 5 km pixel over the recent window."""
+    site = find_site(reef_id)
+    return {
+        "reefId": reef_id,
+        "asOf": site["heat"].get("as_of"),
+        "source": "NOAA Coral Reef Watch, Degree Heating Weeks (5 km, daily)",
+        "alertThresholds": [{"dhw": NOAA_ALERT1_DHW, "label": "Alert Level 1"},
+                            {"dhw": 8.0, "label": "Alert Level 2"}],
+        "points": heat_points(site),
+    }
+
+
+@app.get("/api/reefs/{reef_id}/survey-history")
+def survey_history(reef_id: str):
+    """Past bleaching and coral cover surveys (Global Coral-Bleaching Database) near the reef, by year."""
+    site = find_site(reef_id)
+    return {"reefId": reef_id, **scorer().survey_history(site["lat"], site["lon"])}
+
+
+@app.get("/api/reefs/{reef_id}/news")
+def reef_news(reef_id: str):
+    """Coral news about the reef's region (Mongabay). Matched by place name, not by the reef itself."""
+    site = find_site(reef_id)
+    return {"reefId": reef_id, "region": site["region"],
+            **news_for_region(site["region"], country=nearest_country(site))}
+
+
+HISTORY_FIRST_YEAR = 1998  # earlier years have under 30 bleaching surveys each
+
+
+@lru_cache(maxsize=1)
+def bleaching_history_payload():
+    """Every GCBD bleaching survey from HISTORY_FIRST_YEAR on, averaged per location and year."""
+    from config import BLEACH_THRESHOLD
+    samples = scorer().samples
+    s = samples[samples["bleach"].notna() & (samples["year"] >= HISTORY_FIRST_YEAR)].copy()
+    s["year"] = s["year"].astype(int)
+    s["country"] = s["country"].fillna("Unknown") if "country" in s else "Unknown"
+    s["bleached"] = s["bleach"] >= BLEACH_THRESHOLD
+    s["lat3"], s["lon3"] = s["lat"].round(3), s["lon"].round(3)
+
+    countries = sorted(s["country"].unique())
+    index = {c: i for i, c in enumerate(countries)}
+    loc = (s.groupby(["lat3", "lon3", "year"])
+           .agg(mean=("bleach", "mean"), max=("bleach", "max"), n=("bleach", "size"), country=("country", "first"))
+           .reset_index())
+    points = [[float(r.lat3), float(r.lon3), int(r.year), round(float(r.mean), 1), round(float(r.max), 1),
+               int(r.n), index[r.country]] for r in loc.itertuples()]
+
+    years = []
+    for year, g in s.groupby("year"):
+        by_country = (g.groupby("country").agg(surveys=("bleached", "size"), bleached=("bleached", "mean"))
+                      .sort_values("surveys", ascending=False).head(5))
+        years.append({
+            "year": int(year),
+            "surveys": len(g),
+            "locations": int(g.groupby(["lat3", "lon3"]).ngroups),
+            "bleachedShare": round(float(g["bleached"].mean()), 3),
+            "meanBleachedPct": round(float(g["bleach"].mean()), 1),
+            "topCountries": [{"country": c, "surveys": int(r.surveys), "bleachedShare": round(float(r.bleached), 3)}
+                             for c, r in by_country.iterrows()],
+        })
+    return {
+        "source": "Global Coral-Bleaching Database (van Woesik & Kratochwill 2022)",
+        "thresholdPct": BLEACH_THRESHOLD,
+        "countries": countries,
+        # [lat, lon, year, mean % bleached, max % bleached, surveys, country index]
+        "points": points,
+        "years": years,
+    }
+
+
+@app.get("/api/bleaching-history")
+def bleaching_history():
+    """Observed bleaching, year by year: every survey location, and per-year totals (for the replay map)."""
+    return bleaching_history_payload()
 
 
 class PredictInput(BaseModel):

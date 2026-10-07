@@ -141,12 +141,6 @@ path.leaflet-interactive:focus {
   border-top-color: #fff !important;
 }
 
-/* Markers ease between their resting and hovered styles. */
-path.reef-marker {
-  cursor: pointer;
-  transition: fill-opacity 150ms ease, stroke-width 150ms ease, stroke 150ms ease;
-}
-
 /* --- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,

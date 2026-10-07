@@ -1,11 +1,15 @@
-import type { Ref } from "react";
+import { useState, type Ref } from "react";
 import { AlertCircle, X } from "lucide-react";
 import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
 import HeatScenario from "@/components/HeatScenario";
+import HeatTimeline from "@/components/HeatTimeline";
 import NoaaGapNote from "@/components/NoaaGapNote";
+import PlainSummary from "@/components/PlainSummary";
 import ReefInsight from "@/components/ReefInsight";
+import ReefNews from "@/components/ReefNews";
 import ResilienceScore from "@/components/ResilienceScore";
+import SurveyHistory from "@/components/SurveyHistory";
 import { Button } from "@/components/ui/button";
 import type { DetailStatus } from "@/hooks/useReefDetail";
 import { cn } from "@/lib/utils";
@@ -23,6 +27,47 @@ interface ReefAnalysisPanelProps {
   /** Id applied to the reef name heading, for aria-labelledby. */
   headingId?: string;
   closeButtonRef?: Ref<HTMLButtonElement>;
+}
+
+type PanelView = "plain" | "expert";
+const VIEW_KEY = "reefresilience.panelView";
+
+/** The remembered view, or "expert". Storage can be unavailable (private windows), so every access is guarded. */
+function readView(): PanelView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "plain" ? "plain" : "expert";
+  } catch {
+    return "expert";
+  }
+}
+
+function writeView(view: PanelView) {
+  try {
+    localStorage.setItem(VIEW_KEY, view);
+  } catch {
+    // not remembered; the switch still works for this visit
+  }
+}
+
+function ViewSwitch({ view, onChange }: { view: PanelView; onChange: (view: PanelView) => void }) {
+  return (
+    <div role="group" aria-label="Explanation style" className="inline-grid grid-cols-2 gap-0.5 rounded-md bg-muted p-0.5">
+      {(["plain", "expert"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          aria-pressed={view === v}
+          className={cn(
+            "rounded px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            view === v ? "bg-card text-foreground shadow-sm" : "text-muted-strong hover:text-foreground",
+          )}
+        >
+          {v === "plain" ? "Plain language" : "Expert"}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function Divider() {
@@ -76,6 +121,12 @@ export default function ReefAnalysisPanel({
   closeButtonRef,
 }: ReefAnalysisPanelProps) {
   const wide = layout === "wide";
+  const [view, setView] = useState<PanelView>(readView);
+  const plain = view === "plain";
+  const changeView = (next: PanelView) => {
+    setView(next);
+    writeView(next);
+  };
   const ready = explanation !== null && explanation.reefId === reef.id;
 
   return (
@@ -104,23 +155,37 @@ export default function ReefAnalysisPanel({
         </Button>
       </header>
 
+      <div className="mt-4">
+        <ViewSwitch view={view} onChange={changeView} />
+      </div>
+
       <div className={cn("mt-6", wide && "md:grid md:grid-cols-2 md:gap-10")}>
         <div>
           <ResilienceScore probability={reef.resilienceProbability} category={reef.category} />
-          {reef.noaaGap && (
+          {plain ? (
             <div className="mt-4">
-              <NoaaGapNote reef={reef} />
+              <PlainSummary reef={reef} />
             </div>
+          ) : (
+            <>
+              {reef.noaaGap && (
+                <div className="mt-4">
+                  <NoaaGapNote reef={reef} />
+                </div>
+              )}
+              <Divider />
+              <div>
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-strong">
+                  Environmental predictors
+                </p>
+                <EnvironmentalMetrics metrics={reef.metrics} />
+              </div>
+            </>
           )}
-          <Divider />
-          <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-strong">
-              Environmental predictors
-            </p>
-            <EnvironmentalMetrics metrics={reef.metrics} />
-          </div>
           {reef.metrics.dhwMax12w != null && (
             <>
+              <Divider />
+              <HeatTimeline reefId={reef.id} />
               <Divider />
               <HeatScenario
                 key={reef.id}
@@ -138,7 +203,13 @@ export default function ReefAnalysisPanel({
           <div className={cn(wide && "md:hidden")}>
             <Divider />
           </div>
-          {status === "error" && error ? (
+          {plain ? (
+            <>
+              <SurveyHistory reefId={reef.id} />
+              <Divider />
+              <ReefNews reefId={reef.id} />
+            </>
+          ) : status === "error" && error ? (
             <DetailError message={error} onRetry={onRetry} />
           ) : ready ? (
             <>
@@ -148,6 +219,10 @@ export default function ReefAnalysisPanel({
               />
               <Divider />
               <ReefInsight reef={reef} explanation={explanation} />
+              <Divider />
+              <SurveyHistory reefId={reef.id} />
+              <Divider />
+              <ReefNews reefId={reef.id} />
             </>
           ) : (
             <>

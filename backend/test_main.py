@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+import news
 
 needs_data = pytest.mark.skipif(not main.DATA_PATH.exists(), reason="run the pipeline first")
 
@@ -69,3 +70,93 @@ def test_predict_at_current_heat_reproduces_the_map_score(client):
 def test_predict_validates_input(client):
     assert client.post("/api/predict", json={"latitude": 200, "longitude": 0, "dhwMax12w": 1}).status_code == 422
     assert client.post("/api/predict", json={"latitude": 0, "longitude": 0, "dhwMax12w": -1}).status_code == 422
+
+
+@needs_data
+def test_heat_history_matches_the_reef_summary(client):
+    """The timeline must show the same heat stress the score used: its peak is the 12-week peak."""
+    reefs = client.get("/api/reefs").json()
+    for reef in reefs[:: max(1, len(reefs) // 25)]:
+        body = client.get(f"/api/reefs/{reef['id']}/heat-history").json()
+        values = [p["dhw"] for p in body["points"] if p["dhw"] is not None]
+        assert values, reef["id"]
+        assert body["points"][-1]["date"] == reef["asOf"], reef["id"]
+        assert values[-1] == pytest.approx(reef["metrics"]["dhwNow"], abs=0.01), reef["id"]
+        assert max(values) >= reef["metrics"]["dhwMax12w"] - 0.01, reef["id"]
+    assert client.get("/api/reefs/NOPE/heat-history").status_code == 404
+
+
+@needs_data
+def test_survey_history_is_consistent(client):
+    reef = client.get("/api/reefs").json()[0]
+    body = client.get(f"/api/reefs/{reef['id']}/survey-history").json()
+    years = [y["year"] for y in body["years"]]
+    assert years == sorted(years)
+    assert sum(y["samples"] for y in body["years"]) == body["samples"]
+    assert 0 <= body["coarseSamples"] <= body["samples"]
+    for y in body["years"]:
+        if y["meanBleachedPct"] is not None:
+            assert 0 <= y["meanBleachedPct"] <= y["maxBleachedPct"] <= 100
+            assert 0 <= y["bleachedShare"] <= 1
+
+
+@pytest.mark.parametrize("region, expected", [
+    ("West Nusa Tenggara, Indonesia", ["West Nusa Tenggara", "Nusa Tenggara", "Indonesia"]),
+    ("Japan — Okinawa", ["Okinawa", "Japan"]),
+    ("Bali", ["Bali"]),
+])
+def test_news_places(region, expected):
+    assert news.places_for(region) == expected
+
+
+FEED = """<?xml version="1.0"?><rss version="2.0"><channel>
+<item><title>Coral bleaching hits Bali reefs</title><link>https://news.mongabay.com/a</link>
+  <pubDate>Tue, 22 Sep 2026 02:00:00 +0000</pubDate><description>Surveys off Bali found...</description></item>
+<item><title>Rice prices rise in Bali</title><link>https://news.mongabay.com/b</link>
+  <pubDate>Mon, 21 Sep 2026 02:00:00 +0000</pubDate><description>Not about reefs.</description></item>
+<item><title>Coral restoration in Mexico</title><link>https://news.mongabay.com/c</link>
+  <pubDate>Sun, 20 Sep 2026 02:00:00 +0000</pubDate><description>Caribbean reefs.</description></item>
+</channel></rss>"""
+
+
+def test_news_keeps_only_coral_articles_about_the_place(monkeypatch):
+    class Resp:
+        content = FEED.encode()
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(news.requests, "get", lambda *a, **k: Resp())
+    articles = news._fetch("Bali")
+    assert [a["url"] for a in articles] == ["https://news.mongabay.com/a"]
+    assert articles[0]["published"] == "2026-09-22"
+
+
+def test_news_reports_unavailable_when_the_feed_fails(monkeypatch):
+    def fail(*a, **k):
+        raise news.requests.ConnectionError
+
+    monkeypatch.setattr(news.requests, "get", fail)
+    monkeypatch.setattr(news, "_cache", {})
+    body = news.news_for_region("Nowhere, Atlantis")
+    assert body["status"] == "unavailable" and body["articles"] == []
+
+
+@needs_data
+def test_demo_reefs_get_a_country_for_news():
+    site = next(s for s in main.load_data()["sites"] if s["site_id"] == "NP01")  # labelled "Nusa Penida"
+    assert main.nearest_country(site) == "Indonesia"
+
+
+@needs_data
+def test_bleaching_history_points_add_up_to_the_yearly_totals(client):
+    body = client.get("/api/bleaching-history").json()
+    per_year = {}
+    for lat, lon, year, mean, peak, n, country in body["points"]:
+        assert 0 <= mean <= peak <= 100 and n >= 1 and 0 <= country < len(body["countries"])
+        per_year[year] = per_year.get(year, 0) + n
+    assert per_year == {y["year"]: y["surveys"] for y in body["years"]}
+    assert min(per_year) == main.HISTORY_FIRST_YEAR
+    for y in body["years"]:
+        assert 0 <= y["bleachedShare"] <= 1
+        assert sum(c["surveys"] for c in y["topCountries"]) <= y["surveys"]

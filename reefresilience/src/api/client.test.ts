@@ -1,17 +1,23 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
+  clearApiCache,
   getApiConfig,
+  getBleachingHistory,
   getExplanation,
+  getHeatHistory,
   getModelMetrics,
   getNoaaGap,
   getReef,
+  getReefNews,
+  getSurveyHistory,
   listReefs,
   predict,
   reefAreaTileUrl,
 } from "@/api/client";
 
 afterEach(() => {
+  clearApiCache();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -60,6 +66,10 @@ describe("endpoints", () => {
     await predict({ latitude: -8.7155, longitude: 115.456, dhwMax12w: 4 });
     await getModelMetrics();
     await getNoaaGap();
+    await getHeatHistory("GL15");
+    await getSurveyHistory("GL15");
+    await getReefNews("GL15");
+    await getBleachingHistory();
 
     const urls = fetchMock.mock.calls.map(([url]) => url);
     expect(urls).toEqual([
@@ -69,6 +79,10 @@ describe("endpoints", () => {
       "http://api.test/api/predict",
       "http://api.test/api/model",
       "http://api.test/api/noaa-gap",
+      "http://api.test/api/reefs/GL15/heat-history",
+      "http://api.test/api/reefs/GL15/survey-history",
+      "http://api.test/api/reefs/GL15/news",
+      "http://api.test/api/bleaching-history",
     ]);
     const [, init] = fetchMock.mock.calls[3];
     expect(init?.method).toBe("POST");
@@ -113,5 +127,17 @@ describe("errors", () => {
     }));
     await expect(listReefs()).rejects.toBeInstanceOf(ApiError);
     await expect(listReefs()).rejects.toThrow("unreachable");
+  });
+});
+
+describe("cached archive requests", () => {
+  it("requests a reef's survey history once, and retries after a failure", async () => {
+    let fail = true;
+    const fetchMock = useHttp(() => (fail ? jsonResponse({}, 500) : jsonResponse({ years: [] })));
+    await expect(getSurveyHistory("GL15")).rejects.toBeInstanceOf(ApiError);
+    fail = false;
+    await getSurveyHistory("GL15");
+    await getSurveyHistory("GL15");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

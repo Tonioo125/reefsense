@@ -78,7 +78,7 @@ function ReefBackground() {
 
 export default function Hero({ onExplore, reefCount, surveyCount, predictorCount }: HeroProps) {
   const stats = [
-    { value: reefCount, label: "Reef sites" },
+    { value: reefCount?.toLocaleString() ?? null, label: "Reef sites" },
     { value: surveyCount?.toLocaleString() ?? null, label: "Training surveys" },
     { value: predictorCount, label: "Model predictors" },
   ];

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
-import { Loader2, MapPin } from "lucide-react";
-import { getModelMetrics, getNoaaGap, listReefs } from "@/api/client";
+import { History, Loader2, MapPin } from "lucide-react";
+import { getBleachingHistory, getModelMetrics, getNoaaGap, listReefs } from "@/api/client";
 import AboutSection from "@/components/AboutSection";
 import Hero from "@/components/Hero";
+import HistoryReplay from "@/components/HistoryReplay";
+import HistoryYearPanel from "@/components/HistoryYearPanel";
 import InsightsSection from "@/components/InsightsSection";
 import MapFilter from "@/components/MapFilter";
 import MapLegend from "@/components/MapLegend";
@@ -16,7 +18,9 @@ import { useReefDetail } from "@/hooks/useReefDetail";
 import { scrollToSection } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 import type {
+  BleachingHistory,
   MapColorBy,
+  MapMode,
   ModelMetrics,
   NoaaGapSummary,
   Reef,
@@ -134,6 +138,11 @@ export default function Explore() {
   const [filter, setFilter] = useState<ReefFilter>("All");
   const [colorBy, setColorBy] = useState<MapColorBy>("resilience");
   const [showReefArea, setShowReefArea] = useState(true);
+  const [mode, setMode] = useState<MapMode>("today");
+  const [history, setHistory] = useState<BleachingHistory | null>(null);
+  const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [historyYear, setHistoryYear] = useState(1998);
+  const [playing, setPlaying] = useState(false);
 
   const isMdUp = useMediaQuery("(min-width: 768px)");
   const isLgUp = useMediaQuery("(min-width: 1024px)");
@@ -165,6 +174,47 @@ export default function Explore() {
       active = false;
     };
   }, [loadAttempt]);
+
+  const replaying = mode === "history" && history != null;
+
+  const startReplay = () => {
+    setSelectedId(null);
+    setMode("history");
+    if (history) {
+      setPlaying(true);
+      return;
+    }
+    setHistoryStatus("loading");
+    getBleachingHistory()
+      .then((data) => {
+        setHistory(data);
+        setHistoryYear(data.years[0]?.year ?? 1998);
+        setHistoryStatus("idle");
+        setPlaying(true);
+      })
+      .catch(() => {
+        setHistoryStatus("error");
+        setMode("today");
+      });
+  };
+
+  const exitReplay = useCallback(() => {
+    setPlaying(false);
+    setMode("today");
+  }, []);
+
+  const historyLayer = useMemo(
+    () =>
+      replaying
+        ? {
+            points: history.points.filter((p) => p[2] === historyYear),
+            countries: history.countries,
+            thresholdPct: history.thresholdPct,
+          }
+        : null,
+    [replaying, history, historyYear],
+  );
+  const historyYearData = history?.years.find((y) => y.year === historyYear) ?? null;
 
   const detail = useReefDetail(selectedId);
   const clearSelection = useCallback(() => setSelectedId(null), []);
@@ -245,10 +295,36 @@ export default function Explore() {
               colorBy={colorBy}
               showReefArea={showReefArea}
               highlightGaps={highlightGaps}
+              history={historyLayer}
             />
 
-            {!loading && !error && (
+            {replaying && (
+              <HistoryReplay
+                years={history.years}
+                year={historyYear}
+                onYearChange={setHistoryYear}
+                playing={playing}
+                onPlayingChange={setPlaying}
+                onExit={exitReplay}
+              />
+            )}
+
+            {!loading && !error && !replaying && (
               <>
+                <button
+                  type="button"
+                  onClick={startReplay}
+                  disabled={historyStatus === "loading"}
+                  className="absolute bottom-7 right-3 z-[1000] inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-3.5 py-2 text-xs font-medium text-foreground shadow-float backdrop-blur-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 sm:right-4"
+                >
+                  {historyStatus === "loading" ? (
+                    <Loader2 className="h-3.5 w-3.5 text-brand motion-safe:animate-spin" aria-hidden="true" />
+                  ) : (
+                    <History className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
+                  )}
+                  Replay bleaching history, 1998–2020
+                  {historyStatus === "error" && <span className="text-muted-strong">(could not load)</span>}
+                </button>
                 <MapFilter value={filter} onChange={handleFilterChange} counts={counts} />
                 {noaaGap && (
                   <NoaaGapBanner
@@ -308,7 +384,9 @@ export default function Explore() {
               className="border-t border-border bg-card md:w-full lg:flex lg:w-[400px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
             >
               <div className="scroll-subtle lg:flex-1 lg:overflow-y-auto">
-                {panelReef ? (
+                {replaying ? (
+                  <HistoryYearPanel data={historyYearData} source={history.source} />
+                ) : panelReef ? (
                   renderPanel(panelReef, detail.explanation, isLgUp ? "stacked" : "wide")
                 ) : (
                   <PanelEmptyState />

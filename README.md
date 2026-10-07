@@ -84,7 +84,7 @@ cd reefresilience && npm install && npm run dev   # http://localhost:5173
 # The original single-panel UI is still in frontend/ and uses the same API.
 ```
 
-API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/explanation`, `POST /api/predict`, `GET /api/model`, plus the original `GET /api/sites` and `GET /api/ranking`.
+API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/explanation`, `GET /api/reefs/{id}/heat-history` (daily DHW, 12 weeks), `GET /api/reefs/{id}/survey-history` (past GCBD surveys within 10 km, by year), `GET /api/reefs/{id}/news` (coral stories from Mongabay that name the reef's province or country; about the region, not the specific reef), `GET /api/noaa-gap`, `GET /api/bleaching-history` (every observed bleaching survey since 1998, per location and year, for the replay map), `POST /api/predict`, `GET /api/model`, plus the original `GET /api/sites` and `GET /api/ranking`.
 
 Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugia_50reefs_plus` (0/1), `connectivity` and `in_mpa` (0/1).
 
