@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { PALETTE } from "@/lib/palette";
+import { useScrolledPast } from "@/hooks/useScroll";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
@@ -16,17 +16,6 @@ const NAV_ITEMS = [
 
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
-function Logo() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill={PALETTE.brightTeal} />
-      <circle cx="16" cy="16" r="2.6" fill={PALETTE.coral} />
-      <circle cx="16" cy="16" r="6.5" fill="none" stroke={PALETTE.white} strokeWidth="1.5" opacity="0.85" />
-      <circle cx="16" cy="16" r="10.5" fill="none" stroke={PALETTE.white} strokeWidth="1.5" opacity="0.45" />
-    </svg>
-  );
-}
 
 function StatusIndicator() {
   return (
@@ -44,6 +33,7 @@ function StatusIndicator() {
 
 export default function Navbar({ active, onNavigate }: NavbarProps) {
   const [open, setOpen] = useState(false);
+  const scrolled = useScrolledPast(12);
   const go = (id: string) => {
     onNavigate(id);
     setOpen(false);
@@ -60,16 +50,30 @@ export default function Navbar({ active, onNavigate }: NavbarProps) {
   }, [open]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-md">
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 ease-out",
+        scrolled || open
+          ? "border-border/70 bg-background/85 shadow-soft backdrop-blur-md"
+          : "border-transparent bg-transparent",
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-6">
         <button
           onClick={() => go("top")}
           className={cn("flex items-center gap-2.5 rounded-md", FOCUS_RING)}
-          aria-label="ReefResilience home"
+          aria-label="ReefSense home"
         >
-          <Logo />
-          <span className="text-[15px] font-semibold tracking-tight text-foreground max-[359px]:hidden">
-            ReefResilience
+          <img
+            src="/logo-mark.png"
+            alt="ReefSense"
+            width={297}
+            height={184}
+            className="h-8 w-auto shrink-0"
+            decoding="async"
+          />
+          <span className="font-display text-[19px] font-medium tracking-tight text-foreground max-[359px]:hidden">
+            ReefSense
           </span>
         </button>
 

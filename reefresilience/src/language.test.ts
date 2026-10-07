@@ -59,4 +59,27 @@ describe("scientific language", () => {
       expect(components).toContain(phrase);
     }
   });
+
+  it("uses the ReefSense product name", () => {
+    const components = sources
+      .filter((s) => s.file.replace(/\\/g, "/").startsWith("components/"))
+      .map((s) => s.text)
+      .join("\n");
+    expect(components).toContain("ReefSense");
+
+    // The old product name must not survive in source or config. The spaced
+    // phrase "reef resilience" is the scientific concept and stays allowed.
+    const OLD_NAME = /reef[-_]?resilience/i;
+    const code = walk(SRC).filter(
+      (f) => /\.(ts|tsx|css)$/.test(f) && !f.endsWith(".test.ts"),
+    );
+    expect(code.length).toBeGreaterThan(10);
+    for (const f of code) {
+      expect(readFileSync(f, "utf8"), relative(SRC, f)).not.toMatch(OLD_NAME);
+    }
+    for (const name of ["../index.html", "../package.json"]) {
+      const text = readFileSync(fileURLToPath(new URL(name, import.meta.url)), "utf8");
+      expect(text, name).not.toMatch(OLD_NAME);
+    }
+  });
 });

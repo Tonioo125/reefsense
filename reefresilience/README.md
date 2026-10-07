@@ -1,8 +1,10 @@
-# ReefResilience
+# ReefSense
 
 **An AI-powered GIS platform for exploring the climate resilience of coral reefs.**
 
-ReefResilience helps answer one question:
+> Note: the project folder is still named `reefresilience/`; it will be renamed to `reefsense/`. Commands below run from that folder.
+
+ReefSense helps answer one question:
 
 > _Which coral reef areas are more likely to remain resilient under climate stress?_
 
@@ -76,13 +78,19 @@ src/
     InsightsSection.tsx     # Recharts aggregate charts
     AboutSection.tsx
     Footer.tsx
+    Reveal.tsx              # Scroll-reveal wrapper (fade-up / fade-in / scale-in)
     ui/                     # shadcn/ui primitives (Button, Badge)
   hooks/
     useMediaQuery.ts        # Breakpoints + prefers-reduced-motion
     useReefDetail.ts        # Loads reef + explanation for the selection
+    useInView.ts            # IntersectionObserver, latches once visible
+    useCountUp.ts           # Eased number count-up
+    useScroll.ts            # Navbar scroll state + hero parallax
   lib/
     reef.ts                 # Thresholds, colours, labels, formatters
     reef.test.ts
+    motion.ts               # Easing, count-up and parallax maths
+    motion.test.ts
     scroll.ts
     utils.ts                # cn() class-name helper
   pages/
@@ -91,6 +99,11 @@ src/
     reef.ts                 # Domain + API types
   language.test.ts          # Guards the scientific wording of UI copy
   vite-env.d.ts             # Typed import.meta.env
+public/
+  logo.png                  # Full ReefSense lockup (transparent, cropped)
+  logo-mark.png             # Coral + waves mark, used in the navbar
+  favicon.png, favicon-32.png, apple-touch-icon.png
+  ReefSense Tropical Logo.png # Source artwork the assets are cut from
 components.json             # shadcn/ui configuration
 ```
 
@@ -102,7 +115,7 @@ Reef data is never hardcoded in UI components. It flows from the API through `ap
 - **Tablet (768–1023 px)**: the map stays dominant; the analysis panel sits below it in two columns.
 - **Mobile (< 768 px)**: a compact map; the analysis opens as a bottom sheet (tap the backdrop, the close button or press Escape to dismiss).
 
-Animations are subtle and turn off when the OS requests reduced motion.
+Scroll reveals, the hero parallax, count-ups and the chart and bar animations use IntersectionObserver and CSS (no animation library). Each runs once, and everything renders in its final state when the OS requests reduced motion.
 
 ## API
 

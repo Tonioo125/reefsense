@@ -10,6 +10,7 @@ import MapLegend from "@/components/MapLegend";
 import NoaaGapBanner from "@/components/NoaaGapBanner";
 import ReefAnalysisPanel from "@/components/ReefAnalysisPanel";
 import ResilienceMap from "@/components/ResilienceMap";
+import Reveal from "@/components/Reveal";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReefDetail } from "@/hooks/useReefDetail";
@@ -237,7 +238,11 @@ export default function Explore() {
 
       <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-16">
         <div className="relative isolate flex flex-col lg:h-[calc(100vh-4rem)] lg:min-h-[600px] lg:flex-row">
-          <div className="relative h-[44vh] min-h-[300px] w-full bg-muted md:h-[58vh] md:min-h-[420px] lg:h-full lg:min-h-0 lg:flex-1">
+          {/* Opacity-only reveals here: a transformed ancestor would break fixed positioning. */}
+          <Reveal
+            variant="fade-in"
+            className="relative h-[44vh] min-h-[300px] w-full bg-muted md:h-[58vh] md:min-h-[420px] lg:h-full lg:min-h-0 lg:flex-1"
+          >
             <ResilienceMap
               reefs={visibleReefs}
               selectedId={selectedId}
@@ -300,10 +305,13 @@ export default function Explore() {
                 </div>
               </div>
             )}
-          </div>
+          </Reveal>
 
           {isMdUp && (
-            <aside
+            <Reveal
+              as="aside"
+              variant="fade-in"
+              delay={150}
               aria-label="Reef analysis"
               className="border-t border-border bg-card md:w-full lg:flex lg:w-[400px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
             >
@@ -314,7 +322,7 @@ export default function Explore() {
                   <PanelEmptyState />
                 )}
               </div>
-            </aside>
+            </Reveal>
           )}
         </div>
 

@@ -1,4 +1,4 @@
-// Domain types for ReefResilience. These match the FastAPI responses in backend/main.py.
+// Domain types for ReefSense. These match the FastAPI responses in backend/main.py.
 
 export type ResilienceCategory = "High" | "Medium" | "Low";
 
