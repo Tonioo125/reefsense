@@ -1,0 +1,13 @@
+# Runtime dependencies of the deployed API (Dockerfile). Same as requirements.txt minus the pipeline-only
+# packages (geopandas is only used by pipeline/05_reef_area_tiles.py), so the image stays small.
+#
+# scikit-learn, lightgbm, pandas, numpy and joblib are pinned to the versions that trained
+# data/processed/bleaching_model.joblib, so the model loads exactly as it does locally.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+requests>=2.31
+joblib==1.5.3
+pandas==3.0.3
+numpy==2.0.2
+scikit-learn==1.9.0
+lightgbm==4.7.0

@@ -1,13 +1,14 @@
-import { memo, useCallback, useEffect, useState } from "react";
-import type { CircleMarker as LeafletCircleMarker, LeafletMouseEvent } from "leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import L, { type CircleMarker as LeafletCircleMarker } from "leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import { reefAreaTileUrl } from "@/api/client";
 import HeatScenario from "@/components/HeatScenario";
 import ReefHoverCard from "@/components/ReefHoverCard";
 import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import { PALETTE } from "@/lib/palette";
+import { bleachColor } from "@/lib/history";
 import { CATEGORY_COLORS, REEF_AREA_ATTRIBUTION, REEF_AREA_BOUNDS, coralCoverColor } from "@/lib/reef";
-import type { MapColorBy, Reef } from "@/types/reef";
+import type { HistoryPoint, MapColorBy, Reef } from "@/types/reef";
 
 interface ResilienceMapProps {
   reefs: Reef[];
@@ -18,6 +19,8 @@ interface ResilienceMapProps {
   showReefArea?: boolean;
   /** Emphasise reefs flagged as missed by current NOAA alerts and fade the rest. */
   highlightGaps?: boolean;
+  /** History replay: show these observed surveys (one year) instead of today's reef scores. */
+  history?: { points: HistoryPoint[]; countries: string[]; thresholdPct: number } | null;
 }
 
 const RADIUS = 7;
@@ -120,61 +123,129 @@ interface MarkerLayerProps {
 }
 
 /**
- * All reef markers. Memoised so hovering (which only moves the glow) does not re-render
- * hundreds of markers; the hover "lift" is applied imperatively to the one Leaflet layer.
+ * All reef markers, managed directly as Leaflet layers on one canvas rather than as thousands of React
+ * components: markers are built once per data/colour/highlight change, and a selection or hover
+ * restyles only the markers involved.
  */
-const MarkerLayer = memo(function MarkerLayer({
-  reefs,
-  selectedId,
-  colorBy,
-  highlightGaps,
-  onSelect,
-  onHover,
-}: MarkerLayerProps) {
-  // Canvas draws in order: put flagged reefs last so they sit on top while highlighted.
-  const ordered = highlightGaps
-    ? [...reefs.filter((r) => !r.noaaGap), ...reefs.filter((r) => r.noaaGap)]
-    : reefs;
-  return (
-    <>
-      {ordered.map((reef) => {
-        const isSelected = reef.id === selectedId;
-        const radius = markerRadius(reef, isSelected, highlightGaps);
-        return (
-          <CircleMarker
-            key={reef.id}
-            center={[reef.latitude, reef.longitude]}
-            radius={radius}
-            className="reef-marker"
-            // Reef clicks select the reef; they must not also open the open-water scenario probe.
-            bubblingMouseEvents={false}
-            pathOptions={markerStyle(reef, colorBy, isSelected, highlightGaps)}
-            eventHandlers={{
-              click: () => onSelect(reef.id),
-              mouseover: (e: LeafletMouseEvent) => {
-                const layer = e.target as LeafletCircleMarker;
-                layer.setRadius(radius + HOVER_GROWTH);
-                layer.setStyle({ color: OUTLINE, opacity: 1, weight: 2.5, fillOpacity: 1 });
-                layer.bringToFront();
-                onHover(reef);
-              },
-              mouseout: (e: LeafletMouseEvent) => {
-                const layer = e.target as LeafletCircleMarker;
-                layer.setRadius(radius);
-                layer.setStyle(markerStyle(reef, colorBy, isSelected, highlightGaps));
-                onHover(null);
-              },
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -10]} opacity={1} className="reef-tooltip">
-              <ReefHoverCard reef={reef} colorBy={colorBy} />
-            </Tooltip>
-          </CircleMarker>
-        );
-      })}
-    </>
+function MarkerLayer({ reefs, selectedId, colorBy, highlightGaps, onSelect, onHover }: MarkerLayerProps) {
+  const map = useMap();
+  const markers = useRef(new Map<string, { marker: LeafletCircleMarker; reef: Reef }>());
+  const selectedRef = useRef(selectedId);
+  const styledSelected = useRef<string | null>(null);
+  const handlers = useRef({ onSelect, onHover });
+  handlers.current = { onSelect, onHover };
+
+  const restyle = useCallback(
+    (id: string | null) => {
+      const entry = id ? markers.current.get(id) : undefined;
+      if (!entry) return;
+      const selected = id === selectedRef.current;
+      entry.marker.setStyle(markerStyle(entry.reef, colorBy, selected, highlightGaps));
+      entry.marker.setRadius(markerRadius(entry.reef, selected, highlightGaps));
+      if (selected) entry.marker.bringToFront();
+    },
+    [colorBy, highlightGaps],
   );
-});
+
+  useEffect(() => {
+    const group = L.layerGroup();
+    const built = new Map<string, { marker: LeafletCircleMarker; reef: Reef }>();
+    // Canvas draws in order: put flagged reefs last so they sit on top while highlighted.
+    const ordered = highlightGaps
+      ? [...reefs.filter((r) => !r.noaaGap), ...reefs.filter((r) => r.noaaGap)]
+      : reefs;
+    for (const reef of ordered) {
+      const selected = reef.id === selectedRef.current;
+      const marker = L.circleMarker([reef.latitude, reef.longitude], {
+        radius: markerRadius(reef, selected, highlightGaps),
+        // Reef clicks select the reef; they must not also open the open-water scenario probe.
+        bubblingMouseEvents: false,
+        ...markerStyle(reef, colorBy, selected, highlightGaps),
+      });
+      marker.on("click", () => handlers.current.onSelect(reef.id));
+      marker.on("mouseover", () => {
+        const isSelected = reef.id === selectedRef.current;
+        marker.setRadius(markerRadius(reef, isSelected, highlightGaps) + HOVER_GROWTH);
+        marker.setStyle({ color: OUTLINE, opacity: 1, weight: 2.5, fillOpacity: 1 });
+        marker.bringToFront();
+        handlers.current.onHover(reef);
+      });
+      marker.on("mouseout", () => {
+        const isSelected = reef.id === selectedRef.current;
+        marker.setRadius(markerRadius(reef, isSelected, highlightGaps));
+        marker.setStyle(markerStyle(reef, colorBy, isSelected, highlightGaps));
+        handlers.current.onHover(null);
+      });
+      group.addLayer(marker);
+      built.set(reef.id, { marker, reef });
+    }
+    group.addTo(map);
+    markers.current = built;
+    styledSelected.current = selectedRef.current;
+    const selected = selectedRef.current ? built.get(selectedRef.current) : undefined;
+    selected?.marker.bringToFront();
+    return () => {
+      group.remove();
+    };
+  }, [map, reefs, colorBy, highlightGaps]);
+
+  // Selection changes restyle just the previous and the new selected marker.
+  useEffect(() => {
+    selectedRef.current = selectedId;
+    const previous = styledSelected.current;
+    styledSelected.current = selectedId;
+    if (previous !== selectedId) restyle(previous);
+    restyle(selectedId);
+  }, [selectedId, restyle]);
+
+  return null;
+}
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/**
+ * History replay: one year's observed bleaching surveys, coloured by mean % of colonies bleached.
+ * Drawn imperatively on the shared canvas, like today's markers; worst-hit locations are drawn last.
+ */
+function HistoryLayer({
+  points,
+  countries,
+  thresholdPct,
+}: {
+  points: HistoryPoint[];
+  countries: string[];
+  thresholdPct: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const group = L.layerGroup();
+    for (const [lat, lon, year, mean, max, n, country] of [...points].sort((a, b) => a[3] - b[3])) {
+      const severe = mean >= thresholdPct;
+      const marker = L.circleMarker([lat, lon], {
+        radius: severe ? 6 : 4.5,
+        color: PALETTE.deepTeal,
+        opacity: severe ? 0.7 : 0.35,
+        weight: severe ? 1 : 0.75,
+        fillColor: bleachColor(mean),
+        fillOpacity: 0.95,
+        bubblingMouseEvents: false,
+      });
+      marker.bindTooltip(
+        `<div class="text-xs"><p class="font-semibold">${escapeHtml(countries[country] ?? "")}, ${year}</p>` +
+          `<p>${mean}% of colonies bleached on average${n > 1 ? ` (max ${max}%)` : ""}</p>` +
+          `<p class="text-muted-strong">${n} survey${n === 1 ? "" : "s"} at this location</p></div>`,
+        { direction: "top", offset: [0, -6], className: "reef-tooltip", opacity: 1 },
+      );
+      group.addLayer(marker);
+    }
+    group.addTo(map);
+    return () => {
+      group.remove();
+    };
+  }, [map, points, countries, thresholdPct]);
+  return null;
+}
 
 export default function ResilienceMap({
   reefs,
@@ -183,10 +254,15 @@ export default function ResilienceMap({
   colorBy = "resilience",
   showReefArea = false,
   highlightGaps = false,
+  history = null,
 }: ResilienceMapProps) {
   const selected = reefs.find((r) => r.id === selectedId) ?? null;
   const [hovered, setHovered] = useState<Reef | null>(null);
   const handleHover = useCallback((reef: Reef | null) => setHovered(reef), []);
+  // Markers removed by switching modes never fire mouseout: drop any stale hover card.
+  const replaying = history != null;
+  useEffect(() => setHovered(null), [replaying]);
+  const renderer = useMemo(() => L.canvas({ padding: 0.3, tolerance: 3 }), []);
 
   return (
     <div
@@ -205,8 +281,10 @@ export default function ResilienceMap({
         maxZoom={11}
         worldCopyJump
         scrollWheelZoom
-        // Canvas draws thousands of reef markers far faster than one SVG element each.
+        // Canvas draws thousands of reef markers far faster than one SVG element each; every marker
+        // shares this one canvas, and a few px of hit tolerance makes small markers easy to hover and tap.
         preferCanvas
+        renderer={renderer}
         className="h-full w-full"
       >
         <TileLayer
@@ -228,22 +306,42 @@ export default function ResilienceMap({
           />
         )}
 
-        {/* Soft glows behind the selected and hovered markers. */}
-        {selected && <Halo reef={selected} colorBy={colorBy} radius={20} opacity={0.18} />}
-        {hovered && hovered.id !== selectedId && (
-          <Halo key={`hover-${hovered.id}`} reef={hovered} colorBy={colorBy} radius={17} opacity={0.3} />
+        {history && (
+          <HistoryLayer points={history.points} countries={history.countries} thresholdPct={history.thresholdPct} />
         )}
 
-        <MarkerLayer
-          reefs={reefs}
-          selectedId={selectedId}
-          colorBy={colorBy}
-          highlightGaps={highlightGaps}
-          onSelect={onSelect}
-          onHover={handleHover}
-        />
+        {/* Soft glows behind the selected and hovered markers. */}
+        {!history && selected && <Halo reef={selected} colorBy={colorBy} radius={20} opacity={0.18} />}
+        {!history && hovered && hovered.id !== selectedId && (
+          <Halo key={`hover-${hovered.id}`} reef={hovered} colorBy={colorBy} radius={17} opacity={0.3} />
+        )}
+        {/* One shared hover card on an invisible anchor, instead of a tooltip bound to every marker. */}
+        {!history && hovered && (
+          <CircleMarker
+            key={`tip-${hovered.id}`}
+            center={[hovered.latitude, hovered.longitude]}
+            radius={1}
+            interactive={false}
+            pathOptions={{ stroke: false, fillOpacity: 0 }}
+          >
+            <Tooltip direction="top" offset={[0, -12]} opacity={1} permanent className="reef-tooltip">
+              <ReefHoverCard reef={hovered} colorBy={colorBy} />
+            </Tooltip>
+          </CircleMarker>
+        )}
 
-        <ProbeLayer />
+        {!history && (
+          <MarkerLayer
+            reefs={reefs}
+            selectedId={selectedId}
+            colorBy={colorBy}
+            highlightGaps={highlightGaps}
+            onSelect={onSelect}
+            onHover={handleHover}
+          />
+        )}
+
+        {!history && <ProbeLayer />}
 
         <FlyToSelected reef={selected} />
       </MapContainer>

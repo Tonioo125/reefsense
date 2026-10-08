@@ -1,44 +1,62 @@
 """ReefCast API: serves precomputed site scores, an adjustable restoration-priority ranking,
-and the ReefResilience contract (/api/reefs, /api/predict, /api/reefs/{id}/photos for cached
+and the ReefSense contract (/api/reefs, /api/predict, /api/reefs/{id}/photos for cached
 iNaturalist reef photos from pipeline/06_fetch_reef_photos.py).
 
 uvicorn main:app --reload --port 8000   (run from the backend/ folder)
 
-ReefResilience framing: the model predicts bleaching (>= 10% of colonies) under the past 12 weeks of
+ReefSense framing: the model predicts bleaching (>= 10% of colonies) under the past 12 weeks of
 satellite heat stress. "Probability of high climate resilience" is reported as 1 - P(bleaching), and
 feature contributions are sign-flipped so that positive values raise predicted resilience.
 """
 import base64
+import csv
 import json
 import os
 import sys
 import threading
+import time
 from collections import Counter
 from contextlib import asynccontextmanager
+from datetime import date, timedelta
 from functools import lru_cache
+from math import cos, radians
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+from news import news_for_region
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
 PHOTOS_PATH = Path(os.getenv("REEFCAST_PHOTOS", ROOT / "data/processed/reef_photos.json"))
 REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
+HEAT_SERIES_PATH = ROOT / "data/processed/crw_heat_grid_series.json"  # pipeline/02b_fetch_crw_grid.py
 # Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
 EMPTY_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
 TILE_CACHE = {"Cache-Control": "public, max-age=86400"}
+# Built ReefSense app (`npm run build` in reefsense/). When present, it is served from this
+# origin too (see the end of this file), so the deployed site needs no CORS or proxy.
+WEB_DIST = Path(os.getenv("REEFCAST_WEB_DIST", ROOT / "reefsense/dist")).resolve()
+# Comma-separated countries whose case-study reefs (data/sites/demo_sites.csv) get their news fetched at
+# startup and kept fresh, e.g. "Indonesia". Off by default so local runs do not call Mongabay on every reload.
+WARM_NEWS_COUNTRIES = {c.strip() for c in os.getenv("REEFCAST_WARM_NEWS", "").split(",") if c.strip()}
+NEWS_WARM_INTERVAL_S = 5 * 3600  # below news.CACHE_TTL_S (6 h), so warmed regions never go cold
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 @asynccontextmanager
 async def lifespan(_app):
-    # Load the model and survey index in the background, so the first /api/predict
-    # (e.g. the first drag of the heat slider) does not wait for it.
-    threading.Thread(target=warm_scorer, daemon=True).start()
+    # Build the slow caches in the background, so the first visitor does not wait for them: the model and
+    # survey index (first /api/predict, e.g. the first drag of the heat slider), the reef list and the
+    # bleaching-history replay.
+    threading.Thread(target=warm_caches, daemon=True).start()
+    if WARM_NEWS_COUNTRIES:
+        threading.Thread(target=warm_news, args=(WARM_NEWS_COUNTRIES,), daemon=True).start()
     yield
 
 
@@ -75,13 +93,26 @@ NOAA_GAP_DEFINITION = (
 HEAT_FEATURES = {"TSA_DHW", "TSA_DHWMax", "SSTA_DHW", "SSTA", "TSA"}
 
 
-def load_data():
+@lru_cache(maxsize=1)
+def _scored_data(path, mtime_ns):
+    """Parsed sites_scored.json plus lookups, cached until the file changes (e.g. a pipeline re-run)."""
+    data = json.loads(Path(path).read_text())
+    scored = [s for s in data["sites"] if s.get("bleaching_probability") is not None]
+    return data, scored, {s["site_id"]: s for s in scored}
+
+
+def _cached():
     if not DATA_PATH.exists():
         raise HTTPException(
             status_code=503,
             detail=f"No scored sites at {DATA_PATH}. Run the pipeline (pipeline/04_score_sites.py) first.",
         )
-    return json.loads(DATA_PATH.read_text())
+    return _scored_data(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns)
+
+
+def load_data():
+    """The scored-sites file. Shared between requests: treat it as read-only."""
+    return _cached()[0]
 
 
 def load_photos():
@@ -99,11 +130,40 @@ def _read_photos(path, _mtime_ns):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def warm_scorer():
+def warm_caches():
     try:
+        list_reefs()
         scorer()
+        bleaching_history_payload()
     except HTTPException:
-        pass  # no trained model yet; /api/predict reports it
+        pass  # no scored sites or trained model yet; the endpoints report it
+    except Exception as err:  # the endpoint itself will raise it; the warm-up only logs it
+        print(f"Cache warm-up failed: {err!r}", file=sys.stderr)
+
+
+def case_study_sites():
+    """Scored reefs from the hand-made site list (data/sites/demo_sites.csv): Bali, Nusa Penida and others."""
+    from config import SITES_CSV
+    with open(SITES_CSV, newline="") as f:
+        ids = {row["site_id"] for row in csv.DictReader(f)}
+    return [s for s in scored_sites() if s["site_id"] in ids]
+
+
+def warm_news(countries):
+    """Fetch, and keep refreshing, the news for case-study reefs in these countries. An uncached Mongabay
+    search takes 10-20 s, which a first-time visitor would otherwise wait through on the reef they open."""
+    while True:
+        try:
+            regions = {}
+            for site in case_study_sites():
+                country = nearest_country(site)
+                if country in countries:
+                    regions[site["region"]] = country
+            for region, country in regions.items():
+                news_for_region(region, country=country)
+        except Exception as err:  # a warm-up problem must never take the API down
+            print(f"News warm-up failed: {err!r}", file=sys.stderr)
+        time.sleep(NEWS_WARM_INTERVAL_S)
 
 
 @lru_cache(maxsize=1)
@@ -129,7 +189,7 @@ def criterion_values(site, conn_range):
     return values
 
 
-# --- ReefResilience helpers ---------------------------------------------------
+# --- ReefSense helpers ---------------------------------------------------
 
 def category(resilience):
     if resilience >= 0.66:
@@ -188,6 +248,19 @@ def country_of(site):
     return site["region"].rsplit(", ", 1)[-1]
 
 
+def nearest_country(site):
+    """Country for a reef: from its "Province, Country" label, or else the nearest such reef's (demo sites
+    are labelled with a local place name only)."""
+    if ", " in site["region"]:
+        return country_of(site)
+    labelled = [s for s in load_data()["sites"] if ", " in s["region"]]
+    if not labelled:
+        return None
+    lat, lon = site["lat"], site["lon"]
+    nearest = min(labelled, key=lambda s: (s["lat"] - lat) ** 2 + ((s["lon"] - lon) * cos(radians(lat))) ** 2)
+    return country_of(nearest)
+
+
 def to_reef(site):
     """GET /api/reefs item. Explanation fields live in GET /api/reefs/{id}/explanation."""
     p = site["bleaching_probability"]
@@ -242,12 +315,36 @@ def to_photo(photo_id, record, km):
     }
 
 
+@lru_cache(maxsize=2)
+def _grid_series(mtime):
+    return json.loads(HEAT_SERIES_PATH.read_text())
+
+
+def grid_series():
+    """Daily DHW per GCBD site from the regional grid download, or {} before 02b has run."""
+    if not HEAT_SERIES_PATH.exists():
+        return {}
+    return _grid_series(HEAT_SERIES_PATH.stat().st_mtime)
+
+
+def heat_points(site):
+    """[{date, dhw}] for a site: the per-site series (demo sites) or the grid series (GCBD sites)."""
+    series = site["heat"].get("series") or []
+    if series:
+        return [{"date": p["t"], "dhw": p["dhw"]} for p in series]
+    grid = grid_series().get(site["site_id"])
+    if not grid:
+        return []
+    start = date.fromisoformat(grid["start"])
+    return [{"date": (start + timedelta(days=i)).isoformat(), "dhw": v} for i, v in enumerate(grid["dhw"])]
+
+
 def scored_sites():
-    return [s for s in load_data()["sites"] if s.get("bleaching_probability") is not None]
+    return _cached()[1]
 
 
 def find_site(reef_id):
-    site = next((s for s in scored_sites() if s["site_id"] == reef_id), None)
+    site = _cached()[2].get(reef_id)
     if site is None:
         raise HTTPException(status_code=404, detail=f"No scored reef with id {reef_id!r}.")
     return site
@@ -255,7 +352,7 @@ def find_site(reef_id):
 
 # --- Original ReefCast endpoints -----------------------------------------------
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])  # HEAD: some uptime monitors use it
 def health():
     ready = DATA_PATH.exists()
     unscored = [] if not ready else [s["site_id"] for s in load_data()["sites"]
@@ -278,9 +375,13 @@ def reef_area_tile(z: int, x: int, y: int):
     return Response(EMPTY_TILE, media_type="image/png", headers=TILE_CACHE)
 
 
+VALIDATION_PATH = ROOT / "data/processed/model_validation.json"  # pipeline/06_validate_model.py
+
+
 @app.get("/api/model")
 def model():
-    return {"metrics": load_data().get("model", {}), "criteria": CRITERIA}
+    validation = json.loads(VALIDATION_PATH.read_text()) if VALIDATION_PATH.exists() else None
+    return {"metrics": load_data().get("model", {}), "criteria": CRITERIA, "validation": validation}
 
 
 @app.get("/api/ranking")
@@ -313,11 +414,18 @@ def ranking(
     return {"weights": weights, "sites": ranked}
 
 
-# --- ReefResilience endpoints ----------------------------------------------------
+# --- ReefSense endpoints ----------------------------------------------------
+
+@lru_cache(maxsize=1)
+def _reef_list_json(path, mtime_ns):
+    return json.dumps([to_reef(s) for s in scored_sites()], separators=(",", ":")).encode()
+
 
 @app.get("/api/reefs")
 def list_reefs():
-    return [to_reef(s) for s in scored_sites()]
+    # Built and encoded once per data version: thousands of reefs, requested on every page load.
+    _cached()  # 503 before the pipeline has run
+    return Response(_reef_list_json(str(DATA_PATH), DATA_PATH.stat().st_mtime_ns), media_type="application/json")
 
 
 @app.get("/api/reefs/{reef_id}")
@@ -349,6 +457,86 @@ def get_photos(reef_id: str):
     photos = data.get("photos", {})
     return [to_photo(pid, photos[pid], km)
             for pid, km in data.get("reefs", {}).get(reef_id, []) if pid in photos]
+
+
+@app.get("/api/reefs/{reef_id}/heat-history")
+def heat_history(reef_id: str):
+    """Daily NOAA Coral Reef Watch Degree Heating Weeks at the reef's 5 km pixel over the recent window."""
+    site = find_site(reef_id)
+    return {
+        "reefId": reef_id,
+        "asOf": site["heat"].get("as_of"),
+        "source": "NOAA Coral Reef Watch, Degree Heating Weeks (5 km, daily)",
+        "alertThresholds": [{"dhw": NOAA_ALERT1_DHW, "label": "Alert Level 1"},
+                            {"dhw": 8.0, "label": "Alert Level 2"}],
+        "points": heat_points(site),
+    }
+
+
+@app.get("/api/reefs/{reef_id}/survey-history")
+def survey_history(reef_id: str):
+    """Past bleaching and coral cover surveys (Global Coral-Bleaching Database) near the reef, by year."""
+    site = find_site(reef_id)
+    return {"reefId": reef_id, **scorer().survey_history(site["lat"], site["lon"])}
+
+
+@app.get("/api/reefs/{reef_id}/news")
+def reef_news(reef_id: str):
+    """Coral news about the reef's region (Mongabay). Matched by place name, not by the reef itself."""
+    site = find_site(reef_id)
+    return {"reefId": reef_id, "region": site["region"],
+            **news_for_region(site["region"], country=nearest_country(site))}
+
+
+HISTORY_FIRST_YEAR = 1998  # earlier years have under 30 bleaching surveys each
+
+
+@lru_cache(maxsize=1)
+def bleaching_history_payload():
+    """Every GCBD bleaching survey from HISTORY_FIRST_YEAR on, averaged per location and year."""
+    from config import BLEACH_THRESHOLD
+    samples = scorer().samples
+    s = samples[samples["bleach"].notna() & (samples["year"] >= HISTORY_FIRST_YEAR)].copy()
+    s["year"] = s["year"].astype(int)
+    s["country"] = s["country"].fillna("Unknown") if "country" in s else "Unknown"
+    s["bleached"] = s["bleach"] >= BLEACH_THRESHOLD
+    s["lat3"], s["lon3"] = s["lat"].round(3), s["lon"].round(3)
+
+    countries = sorted(s["country"].unique())
+    index = {c: i for i, c in enumerate(countries)}
+    loc = (s.groupby(["lat3", "lon3", "year"])
+           .agg(mean=("bleach", "mean"), max=("bleach", "max"), n=("bleach", "size"), country=("country", "first"))
+           .reset_index())
+    points = [[float(r.lat3), float(r.lon3), int(r.year), round(float(r.mean), 1), round(float(r.max), 1),
+               int(r.n), index[r.country]] for r in loc.itertuples()]
+
+    years = []
+    for year, g in s.groupby("year"):
+        by_country = (g.groupby("country").agg(surveys=("bleached", "size"), bleached=("bleached", "mean"))
+                      .sort_values("surveys", ascending=False).head(5))
+        years.append({
+            "year": int(year),
+            "surveys": len(g),
+            "locations": int(g.groupby(["lat3", "lon3"]).ngroups),
+            "bleachedShare": round(float(g["bleached"].mean()), 3),
+            "meanBleachedPct": round(float(g["bleach"].mean()), 1),
+            "topCountries": [{"country": c, "surveys": int(r.surveys), "bleachedShare": round(float(r.bleached), 3)}
+                             for c, r in by_country.iterrows()],
+        })
+    return {
+        "source": "Global Coral-Bleaching Database (van Woesik & Kratochwill 2022)",
+        "thresholdPct": BLEACH_THRESHOLD,
+        "countries": countries,
+        # [lat, lon, year, mean % bleached, max % bleached, surveys, country index]
+        "points": points,
+        "years": years,
+    }
+
+
+@app.get("/api/bleaching-history")
+def bleaching_history():
+    """Observed bleaching, year by year: every survey location, and per-year totals (for the replay map)."""
+    return bleaching_history_payload()
 
 
 class PredictInput(BaseModel):
@@ -397,3 +585,31 @@ def predict(body: PredictInput):
         "contributions": resilience_contributions(contributions, TOP_CONTRIBUTIONS),
         "nearestSurveyKm": round(nearest_km, 1),
     }
+
+
+# --- Web app (production) ---------------------------------------------------------
+# Registered last, so every /api route above takes precedence. In development Vite serves the app instead.
+
+class HashedAssets(StaticFiles):
+    """Vite's /assets files carry a content hash in their names, so browsers may cache them indefinitely."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+if (WEB_DIST / "index.html").is_file():
+    if (WEB_DIST / "assets").is_dir():
+        app.mount("/assets", HashedAssets(directory=WEB_DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def web_app(path: str):
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        file = (WEB_DIST / path).resolve()
+        if path and file.is_file() and WEB_DIST in file.parents:
+            return FileResponse(file, headers={"Cache-Control": "public, max-age=3600"})  # logos, favicons
+        # The app itself: never cached, so a redeploy shows up on the next page load.
+        return FileResponse(WEB_DIST / "index.html", headers={"Cache-Control": "no-cache"})

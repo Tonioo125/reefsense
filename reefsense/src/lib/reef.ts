@@ -198,3 +198,71 @@ export function levelTone(level: QualitativeLevel): { soft: string; text: string
       return tone("Low");
   }
 }
+
+/** "2026-10-04" -> "4 Oct 2026" (or "4 Oct" without the year). Read as UTC so the day never shifts. */
+export function formatDay(iso: string, withYear = true): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(withYear ? { year: "numeric" } : {}),
+    timeZone: "UTC",
+  });
+}
+
+/** The highest point of a daily heat series, or null when it has no data. */
+export function heatPeak(points: { date: string; dhw: number | null }[]): { date: string; dhw: number } | null {
+  let peak: { date: string; dhw: number } | null = null;
+  for (const p of points) {
+    if (p.dhw != null && (peak === null || p.dhw > peak.dhw)) peak = { date: p.date, dhw: p.dhw };
+  }
+  return peak;
+}
+
+/** First and latest surveyed coral cover from a survey history, or null without any cover records. */
+export function coverTrend(
+  years: { year: number; coralCoverPct: number | null }[],
+): { first: { year: number; pct: number }; last: { year: number; pct: number } } | null {
+  const withCover = years.filter((y) => y.coralCoverPct != null);
+  if (!withCover.length) return null;
+  const at = (y: (typeof withCover)[number]) => ({ year: y.year, pct: y.coralCoverPct as number });
+  return { first: at(withCover[0]), last: at(withCover[withCover.length - 1]) };
+}
+
+/** Peak 12-week heat stress bins for the insights chart; NOAA's Alert Level 1 starts at 4 DHW. */
+export const DHW_BINS = [
+  { label: "0–1", min: 0, max: 1 },
+  { label: "1–2", min: 1, max: 2 },
+  { label: "2–3", min: 2, max: 3 },
+  { label: "3–4", min: 3, max: 4 },
+  { label: "4–6", min: 4, max: 6 },
+  { label: "6–8", min: 6, max: 8 },
+  { label: "8+", min: 8, max: Infinity },
+] as const;
+
+export interface HeatBandShare {
+  label: string;
+  min: number;
+  count: number;
+  /** Share of the bin's reefs in each predicted band (0–1); all zero for an empty bin. */
+  shares: Record<ResilienceCategory, number>;
+}
+
+/** Reefs per peak-DHW bin, with the share in each predicted resilience band. Reefs without heat data are left out. */
+export function heatBandShares(
+  reefs: { category: ResilienceCategory; metrics: { dhwMax12w?: number | null } }[],
+): HeatBandShare[] {
+  return DHW_BINS.map((bin) => {
+    const inBin = reefs.filter((r) => {
+      const dhw = r.metrics.dhwMax12w;
+      return dhw != null && dhw >= bin.min && dhw < bin.max;
+    });
+    const share = (c: ResilienceCategory) =>
+      inBin.length ? inBin.filter((r) => r.category === c).length / inBin.length : 0;
+    return {
+      label: bin.label,
+      min: bin.min,
+      count: inBin.length,
+      shares: { High: share("High"), Medium: share("Medium"), Low: share("Low") },
+    };
+  });
+}

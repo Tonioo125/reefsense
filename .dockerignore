@@ -1,0 +1,24 @@
+# Build context for the Dockerfile. `fly deploy` and `docker build` read this file, not .gitignore.
+# Unlike .gitignore it deliberately lets the git-ignored runtime files through, so they reach the image
+# without being committed: the trained model (data/processed/*.joblib), the GCBD survey table
+# (data/raw/gcbd.csv) and the UNEP-WCMC reef-area tiles (data/processed/reef_area_tiles/).
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+.venv*
+**/.venv
+**/node_modules
+**/.env
+**/.env.*
+**/.DS_Store
+**/*:Zone.Identifier
+frontend/
+reefsense/dist
+reefsense/.vite
+
+# Raw downloads stay out (GCBD SQLite, UNEP-WCMC shapefile zip): large, and the WCMC source data must not
+# be made downloadable. The model's neighbour lookup only reads the survey table.
+data/raw/*
+!data/raw/gcbd.csv

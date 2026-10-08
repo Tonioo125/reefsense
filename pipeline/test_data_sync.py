@@ -102,16 +102,31 @@ def test_grid_keep_failed_keeps_previous_rows_of_failed_cells_only():
     assert dict(zip(out["site_id"], out["dhw_max_12w"])) == {"A": 9.0, "B": 2.0}
 
 
+def test_grid_keep_failed_series_keeps_previous_series_of_failed_cells_only():
+    previous = {"A": {"start": "2026-01-01", "dhw": [1.0]}, "B": {"start": "2026-01-01", "dhw": [2.0]},
+                "C": {"start": "2026-01-01", "dhw": [3.0]}}
+    new = {"A": {"start": "2026-02-01", "dhw": [9.0]}}
+    out = grid.keep_failed_series(previous, new, ["B"])
+    assert out == {"A": new["A"], "B": previous["B"]}
+
+
+OLD_SERIES = {"A": {"start": "2026-01-01", "dhw": [1.0]}, "B": {"start": "2026-01-01", "dhw": [2.0]}}
+
+
 def run_grid(monkeypatch, tmp_path, ok_cells):
     """Run 02b main() on two sites in different cells; only cells in ok_cells download."""
     sites = tmp_path / "sites.csv"
     pd.DataFrame({"site_id": ["A", "B"], "lat": [0.5, 10.5], "lon": [0.5, 10.5]}).to_csv(sites, index=False)
     out = tmp_path / "heat.csv"
     pd.DataFrame({"site_id": ["A", "B"], "dhw_max_12w": [1.0, 2.0]}).to_csv(out, index=False)
+    series = tmp_path / "series.json"
+    series.write_text(json.dumps(OLD_SERIES))
     monkeypatch.setattr(grid, "CRW_GRID_CACHE", tmp_path / "cache")
     monkeypatch.setattr(grid, "fetch_cell", lambda cell, box, refresh: (cell, *(("dhw", "sst") if cell in ok_cells else (None, None))))
-    monkeypatch.setattr(grid, "summarise", lambda site, dhw, sst: {"site_id": site.site_id, "dhw_max_12w": 9.0})
-    monkeypatch.setattr(sys, "argv", ["02b", "--sites", str(sites), "--out", str(out), "--workers", "1"])
+    monkeypatch.setattr(grid, "summarise", lambda site, dhw, sst: (
+        {"site_id": site.site_id, "dhw_max_12w": 9.0}, {"start": "2026-02-01", "dhw": [9.0]}))
+    monkeypatch.setattr(sys, "argv", ["02b", "--sites", str(sites), "--out", str(out),
+                                      "--series-out", str(series), "--workers", "1"])
     grid.main()
     return pd.read_csv(out)
 
@@ -119,6 +134,8 @@ def run_grid(monkeypatch, tmp_path, ok_cells):
 def test_grid_partial_failure_keeps_previous_rows(monkeypatch, tmp_path):
     out = run_grid(monkeypatch, tmp_path, {"0_0"})
     assert dict(zip(out["site_id"], out["dhw_max_12w"])) == {"A": 9.0, "B": 2.0}
+    series = json.loads((tmp_path / "series.json").read_text())
+    assert series == {"A": {"start": "2026-02-01", "dhw": [9.0]}, "B": OLD_SERIES["B"]}
 
 
 def test_grid_all_cells_failed_exits_1_without_writing(monkeypatch, tmp_path):
@@ -126,6 +143,7 @@ def test_grid_all_cells_failed_exits_1_without_writing(monkeypatch, tmp_path):
         run_grid(monkeypatch, tmp_path, set())
     assert exc.value.code == 1
     assert pd.read_csv(tmp_path / "heat.csv")["dhw_max_12w"].tolist() == [1.0, 2.0]
+    assert json.loads((tmp_path / "series.json").read_text()) == OLD_SERIES
 
 
 # --- 01d: GCBD version check ------------------------------------------------------------------------

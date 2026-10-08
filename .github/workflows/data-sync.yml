@@ -72,7 +72,8 @@ jobs:
         if: ${{ !cancelled() }}
         run: >-
           bash .github/scripts/commit-data.sh "data: daily NOAA sync $(date -u +%F)"
-          data/processed/crw_timeseries.csv data/processed/crw_heat_grid.csv data/processed/sites_scored.json
+          data/processed/crw_timeseries.csv data/processed/crw_heat_grid.csv
+          data/processed/crw_heat_grid_series.json data/processed/sites_scored.json
 
       - name: Summary
         if: ${{ !cancelled() }}

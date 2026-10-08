@@ -1,0 +1,38 @@
+# Fly.io config for the ReefCast demo (see DEPLOY.md): one always-on Machine serves the web app and the API.
+
+app = "reefcast"          # app names are global on Fly.io: change it if `fly apps create` says it is taken
+primary_region = "iad"    # Ashburn, US East: lowest price; "sin" (Singapore) is closer to Indonesia
+
+kill_signal = "SIGINT"
+kill_timeout = 10
+swap_size_mb = 512        # headroom for brief memory spikes on the 1 GB Machine
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Pre-fetch, and keep fresh, the news panel for the Bali / Nusa Penida case-study reefs.
+  REEFCAST_WARM_NEWS = "Indonesia"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"   # always on: visitors never wait for a cold start and model load
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 40
+    hard_limit = 80
+
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

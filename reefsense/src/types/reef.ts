@@ -153,3 +153,88 @@ export interface ModelMetrics {
   baseline_dhw?: { feature: string; roc_auc: number | null };
   indonesia_subset?: { n_rows: number; roc_auc: number | null };
 }
+
+/** GET /api/reefs/{id}/heat-history: daily NOAA Coral Reef Watch heat stress at the reef. */
+export interface HeatHistory {
+  reefId: string;
+  asOf: string | null;
+  source: string;
+  alertThresholds: { dhw: number; label: string }[];
+  /** One point per day, oldest first; `dhw` is null on days without data. */
+  points: { date: string; dhw: number | null }[];
+}
+
+/** One year of past surveys near a reef (Global Coral-Bleaching Database). */
+export interface SurveyYear {
+  year: number;
+  samples: number;
+  locations: number;
+  bleachingSamples: number;
+  /** Mean percent of colonies bleached across that year's samples. */
+  meanBleachedPct: number | null;
+  maxBleachedPct: number | null;
+  /** Share of samples at or above the bleaching threshold (10%). */
+  bleachedShare: number | null;
+  coralCoverPct: number | null;
+}
+
+/** GET /api/reefs/{id}/survey-history */
+export interface SurveyHistory {
+  reefId: string;
+  radiusKm: number;
+  nearestKm: number | null;
+  samples: number;
+  locations: number;
+  /** Samples whose bleaching is a severity band's midpoint rather than a measured percent. */
+  coarseSamples: number;
+  sources: string[];
+  thresholdPct: number;
+  years: SurveyYear[];
+}
+
+export interface NewsArticle {
+  title: string;
+  url: string;
+  published: string | null;
+  summary: string | null;
+  /** The region name the article matched. */
+  place: string;
+}
+
+/** GET /api/reefs/{id}/news: coral news about the reef's region, matched by place name. */
+export interface ReefNews {
+  reefId: string;
+  region: string;
+  status: "ok" | "unavailable";
+  source: string;
+  sourceUrl: string;
+  /** Place names searched, most specific first. */
+  searched: string[];
+  articles: NewsArticle[];
+}
+
+/** One year of observed bleaching across all surveys (GET /api/bleaching-history). */
+export interface HistoryYear {
+  year: number;
+  surveys: number;
+  locations: number;
+  /** Share of surveys at or above the bleaching threshold (10% of colonies). */
+  bleachedShare: number;
+  meanBleachedPct: number;
+  /** Most-surveyed countries that year. */
+  topCountries: { country: string; surveys: number; bleachedShare: number }[];
+}
+
+/** [lat, lon, year, mean % bleached, max % bleached, surveys, country index] */
+export type HistoryPoint = [number, number, number, number, number, number, number];
+
+/** GET /api/bleaching-history */
+export interface BleachingHistory {
+  source: string;
+  thresholdPct: number;
+  countries: string[];
+  points: HistoryPoint[];
+  years: HistoryYear[];
+}
+
+export type MapMode = "today" | "history";

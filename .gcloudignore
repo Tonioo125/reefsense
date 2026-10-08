@@ -1,0 +1,26 @@
+# Files `gcloud run deploy --source .` does NOT upload to Cloud Build. Keep in step with .dockerignore.
+#
+# This file must exist. Without it, gcloud generates one that also skips everything in .gitignore, which
+# would leave out the git-ignored files the site needs: the trained model (data/processed/*.joblib), the
+# GCBD survey table (data/raw/gcbd.csv) and the UNEP-WCMC reef-area tiles (data/processed/reef_area_tiles/).
+# Check what will be uploaded with:  gcloud meta list-files-for-upload
+.gcloudignore
+.git/
+.github/
+__pycache__/
+*.pyc
+.pytest_cache/
+/.venv*/
+node_modules/
+.env
+.env.*
+.DS_Store
+*:Zone.Identifier
+/frontend/
+/reefsense/dist/
+/reefsense/.vite/
+
+# Raw downloads stay out (GCBD SQLite, UNEP-WCMC shapefile zip): large, and the WCMC source data must not
+# be made downloadable. The model's neighbour lookup only reads the survey table.
+/data/raw/*
+!/data/raw/gcbd.csv

@@ -8,12 +8,14 @@ each cell's bounding box is downloaded in two requests, which is far faster for 
   - CRW_DHW, daily, last 84 days   -> dhw_now, dhw_max_12w (daily, so the 12-week peak is exact)
   - SST anomaly, SST, alert level, daily, last 30 days -> ssta_mean_30d, sst_mean_30d, alert_level
 (ERDDAP requires every variable in one request to share the same time range, hence two requests.)
-Each site uses its own 5 km pixel, or the nearest ocean pixel within PAD_DEG if its pixel is masked
+The daily DHW series behind each site's 12-week peak is saved alongside (CRW_HEAT_SERIES), for the
+API's heat timeline. Each site uses its own 5 km pixel, or the nearest ocean pixel within PAD_DEG if its pixel is masked
 as land. Raw downloads are cached in data/raw/crw_grid/ so an interrupted run resumes; pass
---refresh to download fresh data. Sites in cells that fail keep their rows from the previous output;
-if every cell fails nothing is written and the script exits 1.
+--refresh to download fresh data. Sites in cells that fail keep their rows (and daily series) from the
+previous output; if every cell fails nothing is written and the script exits 1.
 """
 import argparse
+import json
 import math
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -22,7 +24,7 @@ from pathlib import Path
 import pandas as pd
 
 from common import erddap_csv
-from config import CRW_GRID_CACHE, CRW_HEAT_GRID, GCBD_SITES_CSV
+from config import CRW_GRID_CACHE, CRW_HEAT_GRID, CRW_HEAT_SERIES, GCBD_SITES_CSV
 
 CELL_DEG = 2.0
 PAD_DEG = 0.25
@@ -51,20 +53,30 @@ def fetch_cell(cell, box, refresh):
     return cell, dhw, sst
 
 
+def daily_series(p_dhw):
+    """{"start": first day, "dhw": [one value per day, None where missing]} for one pixel."""
+    s = p_dhw.set_index(p_dhw["time"].dt.normalize())["CRW_DHW"].sort_index()
+    s = s[~s.index.duplicated()]
+    s = s.reindex(pd.date_range(s.index.min(), s.index.max(), freq="D"))
+    return {"start": s.index[0].strftime("%Y-%m-%d"),
+            "dhw": [None if pd.isna(v) else round(float(v), 2) for v in s]}
+
+
 def summarise(site, dhw, sst):
-    """Heat summary for one site from its cell's grids, using the nearest pixel with data."""
+    """(heat summary, daily DHW series) for one site from its cell's grids, using the nearest pixel
+    with data. The series is None when no pixel within PAD_DEG has data."""
     last = dhw["time"].max()
     latest = dhw[(dhw["time"] == last) & dhw["CRW_DHW"].notna()]
     dy = latest["latitude"] - site.lat
     dx = (latest["longitude"] - site.lon) * math.cos(math.radians(site.lat))
     km = (dx ** 2 + dy ** 2) ** 0.5 * KM_PER_DEG
     if km.empty or km.min() > PAD_DEG * KM_PER_DEG:
-        return {"site_id": site.site_id}
+        return {"site_id": site.site_id}, None
     pixel = latest.loc[km.idxmin()]
     at = lambda df: df[(df["latitude"] == pixel["latitude"]) & (df["longitude"] == pixel["longitude"])]
     p_dhw, p_sst = at(dhw), at(sst)
     baa = p_sst.sort_values("time")["CRW_BAA"].dropna()
-    return {
+    summary = {
         "site_id": site.site_id,
         "pixel_lat": pixel["latitude"], "pixel_lon": pixel["longitude"], "pixel_km": round(km.min(), 1),
         "dhw_now": pixel["CRW_DHW"],
@@ -74,6 +86,7 @@ def summarise(site, dhw, sst):
         "alert_level": baa.iloc[-1] if len(baa) else None,
         "as_of": last.strftime("%Y-%m-%d"),
     }
+    return summary, daily_series(p_dhw)
 
 
 def keep_failed(previous_df, new_df, failed_site_ids):
@@ -83,10 +96,17 @@ def keep_failed(previous_df, new_df, failed_site_ids):
     return pd.concat([new_df, kept], ignore_index=True)
 
 
+def keep_failed_series(previous, new, failed_site_ids):
+    """New daily series plus the previous series of sites whose cells failed this run."""
+    kept = {sid: previous[sid] for sid in failed_site_ids if sid in previous and sid not in new}
+    return {**new, **kept}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sites", default=str(GCBD_SITES_CSV))
     parser.add_argument("--out", default=str(CRW_HEAT_GRID))
+    parser.add_argument("--series-out", default=str(CRW_HEAT_SERIES))
     parser.add_argument("--workers", type=int, default=3, help="parallel requests (be polite)")
     parser.add_argument("--refresh", action="store_true", help="ignore cached downloads")
     args = parser.parse_args()
@@ -102,7 +122,7 @@ def main():
     CRW_GRID_CACHE.mkdir(parents=True, exist_ok=True)
     print(f"{len(sites):,} sites in {len(boxes)} cells; {args.workers} parallel requests", flush=True)
 
-    rows, failed = [], []
+    rows, series, failed = [], {}, []
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = [pool.submit(fetch_cell, cell, box, args.refresh) for cell, box in boxes.items()]
         for done, future in enumerate(as_completed(futures), 1):
@@ -112,8 +132,10 @@ def main():
                 failed.append(cell)
                 print(f"[{done}/{len(boxes)}] cell {cell}: download failed", flush=True)
                 continue
-            summaries = [summarise(s, dhw, sst) for s in members.itertuples()]
+            results = [summarise(s, dhw, sst) for s in members.itertuples()]
+            summaries = [summary for summary, _ in results]
             rows += summaries
+            series.update({summary["site_id"]: ts for summary, ts in results if ts is not None})
             masked = sum(1 for r in summaries if r.get("pixel_km", 0) > 2.5)
             print(f"[{done}/{len(boxes)}] cell {cell}: {len(members)} sites"
                   + (f", {masked} using a nearby ocean pixel" if masked else ""), flush=True)
@@ -126,9 +148,15 @@ def main():
         failed_ids = sites.loc[sites["cell"].isin(failed), "site_id"]
         out = keep_failed(pd.read_csv(args.out), out, failed_ids)
         print(f"Kept previous rows for sites in {len(failed)} failed cells", flush=True)
+    if failed and Path(args.series_out).exists():
+        failed_ids = sites.loc[sites["cell"].isin(failed), "site_id"]
+        series = keep_failed_series(json.loads(Path(args.series_out).read_text()), series, failed_ids)
     out.to_csv(args.out, index=False)
     missing = out["dhw_max_12w"].isna().sum() if "dhw_max_12w" in out else len(out)
+    with open(args.series_out, "w") as f:
+        json.dump(series, f, separators=(",", ":"))
     print(f"Saved {len(out):,} site summaries to {args.out}; without heat data: {missing}")
+    print(f"Saved {len(series):,} daily DHW series to {args.series_out}")
     if failed:
         print(f"Failed cells (re-run to retry; cached cells are skipped): {', '.join(failed)}")
 

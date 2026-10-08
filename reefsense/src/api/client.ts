@@ -1,11 +1,15 @@
 import type {
+  BleachingHistory,
+  HeatHistory,
   ModelMetrics,
   NoaaGapSummary,
   PredictRequest,
   PredictResponse,
   Reef,
   ReefExplanation,
+  ReefNews,
   ReefPhoto,
+  SurveyHistory,
 } from "@/types/reef";
 
 /**
@@ -17,6 +21,10 @@ import type {
  *   POST /api/predict                 -> predict(input)
  *   GET  /api/reefs/{id}/explanation  -> getExplanation(id)
  *   GET  /api/reefs/{id}/photos       -> getReefPhotos(id)
+ *   GET  /api/reefs/{id}/heat-history -> getHeatHistory(id)
+ *   GET  /api/reefs/{id}/survey-history -> getSurveyHistory(id)
+ *   GET  /api/reefs/{id}/news         -> getReefNews(id)
+ *   GET  /api/bleaching-history       -> getBleachingHistory()
  *   GET  /api/model                   -> getModelMetrics()
  *   GET  /api/noaa-gap                -> getNoaaGap()
  */
@@ -84,6 +92,53 @@ export function getExplanation(id: string): Promise<ReefExplanation | null> {
 /** GET /api/reefs/{id}/photos: community photos near the reef (404 or none -> []). */
 export async function getReefPhotos(id: string): Promise<ReefPhoto[]> {
   return (await httpOrNull<ReefPhoto[]>(`/reefs/${encodeURIComponent(id)}/photos`)) ?? [];
+}
+
+/** GET /api/reefs/{id}/heat-history: daily Degree Heating Weeks over the recent window. */
+export function getHeatHistory(id: string): Promise<HeatHistory | null> {
+  return httpOrNull<HeatHistory>(`/reefs/${encodeURIComponent(id)}/heat-history`);
+}
+
+/**
+ * Caches a request that returns fixed data (the survey archive does not change while the page is
+ * open), so several components can ask for it without repeating the request. Failures are not cached.
+ */
+function cached<T>(cache: Map<string, Promise<T>>, key: string, load: () => Promise<T>): Promise<T> {
+  let hit = cache.get(key);
+  if (!hit) {
+    hit = load().catch((err) => {
+      cache.delete(key);
+      throw err;
+    });
+    cache.set(key, hit);
+  }
+  return hit;
+}
+
+const surveyHistoryCache = new Map<string, Promise<SurveyHistory | null>>();
+const bleachingHistoryCache = new Map<string, Promise<BleachingHistory>>();
+
+/** Clears cached responses (for tests). */
+export function clearApiCache(): void {
+  surveyHistoryCache.clear();
+  bleachingHistoryCache.clear();
+}
+
+/** GET /api/reefs/{id}/survey-history: past bleaching surveys near the reef, by year. */
+export function getSurveyHistory(id: string): Promise<SurveyHistory | null> {
+  return cached(surveyHistoryCache, id, () =>
+    httpOrNull<SurveyHistory>(`/reefs/${encodeURIComponent(id)}/survey-history`),
+  );
+}
+
+/** GET /api/bleaching-history: every observed bleaching survey since 1998, for the replay map. */
+export function getBleachingHistory(): Promise<BleachingHistory> {
+  return cached(bleachingHistoryCache, "all", () => http<BleachingHistory>("/bleaching-history"));
+}
+
+/** GET /api/reefs/{id}/news: coral news about the reef's region. */
+export function getReefNews(id: string): Promise<ReefNews | null> {
+  return httpOrNull<ReefNews>(`/reefs/${encodeURIComponent(id)}/news`);
 }
 
 /** POST /api/predict: score any location under a given heat-stress scenario. */

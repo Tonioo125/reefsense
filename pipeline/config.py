@@ -44,6 +44,7 @@ GCBD_SOURCE_MANIFEST = SITES_DIR / "gcbd_source.json"  # upstream fingerprint (0
 SITE_FILES = [SITES_CSV, GCBD_SITES_CSV]  # every list that exists is scored
 CRW_TIMESERIES = PROCESSED / "crw_timeseries.csv"  # per-site point series (02_fetch_crw.py)
 CRW_HEAT_GRID = PROCESSED / "crw_heat_grid.csv"  # per-site summaries from regional grids (02b)
+CRW_HEAT_SERIES = PROCESSED / "crw_heat_grid_series.json"  # daily DHW per site, last 12 weeks (02b)
 CRW_GRID_CACHE = RAW / "crw_grid"  # raw grid downloads, reused on re-runs
 # Reef extent map tiles (05_reef_area_tiles.py), rendered from UNEP-WCMC data for these boxes
 # (lon_min, lat_min, lon_max, lat_max). Together they cover Asia's reefs; being boxes, they also take in

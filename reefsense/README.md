@@ -130,6 +130,10 @@ Scroll reveals, the hero parallax, count-ups and the chart and bar animations us
 | `GET /api/reefs/{id}/photos` | `getReefPhotos(id)` | `ReefPhoto[]` (404 → `[]`) |
 | `POST /api/predict` | `predict(input)` | body `PredictRequest`, returns `PredictResponse` |
 | `GET /api/model` | `getModelMetrics()` | `ModelMetrics` |
+| `GET /api/reefs/{id}/heat-history` | `getHeatHistory(id)` | `HeatHistory` (404 → `null`) |
+| `GET /api/reefs/{id}/survey-history` | `getSurveyHistory(id)` | `SurveyHistory` (404 → `null`) |
+| `GET /api/reefs/{id}/news` | `getReefNews(id)` | `ReefNews` (404 → `null`) |
+| `GET /api/bleaching-history` | `getBleachingHistory()` | `BleachingHistory` |
 
 Non-2xx responses other than 404, and an unreachable API, surface as an `ApiError`, which the UI shows with a "Try again" action.
 

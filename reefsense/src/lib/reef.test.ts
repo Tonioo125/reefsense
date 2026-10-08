@@ -8,6 +8,10 @@ import {
   CORAL_COVER_NO_DATA,
   coralCoverColor,
   coralCoverNote,
+  coverTrend,
+  formatDay,
+  heatBandShares,
+  heatPeak,
   categoryFromProbability,
   categoryRangeLabel,
   environmentalSummary,
@@ -166,5 +170,54 @@ describe("map gradients", () => {
     expect(s[0]).toBe(0);
     expect(s[s.length - 1]).toBe(100);
     expect(CORAL_COVER_MAX).toBe(70);
+  });
+});
+
+describe("formatDay", () => {
+  it("formats ISO days without shifting them across time zones", () => {
+    expect(formatDay("2026-10-04")).toBe("4 Oct 2026");
+    expect(formatDay("2026-01-01", false)).toBe("1 Jan");
+  });
+});
+
+describe("heatPeak", () => {
+  it("finds the highest day and skips missing values", () => {
+    expect(
+      heatPeak([
+        { date: "2026-07-01", dhw: 1.2 },
+        { date: "2026-07-02", dhw: null },
+        { date: "2026-07-03", dhw: 3.4 },
+        { date: "2026-07-04", dhw: 2.0 },
+      ]),
+    ).toEqual({ date: "2026-07-03", dhw: 3.4 });
+  });
+  it("is null without data", () => {
+    expect(heatPeak([{ date: "2026-07-01", dhw: null }])).toBeNull();
+  });
+});
+
+describe("coverTrend", () => {
+  it("returns the first and latest surveyed cover", () => {
+    expect(
+      coverTrend([
+        { year: 1998, coralCoverPct: null },
+        { year: 2001, coralCoverPct: 25.3 },
+        { year: 2018, coralCoverPct: 25 },
+      ]),
+    ).toEqual({ first: { year: 2001, pct: 25.3 }, last: { year: 2018, pct: 25 } });
+  });
+  it("is null without cover records", () => {
+    expect(coverTrend([{ year: 1998, coralCoverPct: null }])).toBeNull();
+  });
+});
+
+describe("heatBandShares", () => {
+  const reef = (category: "High" | "Medium" | "Low", dhw: number | null) => ({ category, metrics: { dhwMax12w: dhw } });
+  it("bins reefs by peak DHW, with band shares per bin", () => {
+    const bins = heatBandShares([reef("High", 0.5), reef("Low", 0.9), reef("Medium", 4), reef("Low", 12), reef("High", null)]);
+    expect(bins.map((b) => b.count)).toEqual([2, 0, 0, 0, 1, 0, 1]);
+    expect(bins[0].shares).toEqual({ High: 0.5, Medium: 0, Low: 0.5 });
+    expect(bins[4].shares.Medium).toBe(1); // 4 DHW starts the 4–6 bin (NOAA Alert Level 1)
+    expect(bins[1].shares).toEqual({ High: 0, Medium: 0, Low: 0 });
   });
 });
