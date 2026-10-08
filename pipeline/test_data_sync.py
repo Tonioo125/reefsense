@@ -30,6 +30,7 @@ grid = load("02b_fetch_crw_grid.py")
 gcbd = load("01d_sync_gcbd.py")
 mermaid = load("05_fetch_mermaid.py")
 photos = load("06_fetch_reef_photos.py")
+support = load("07_check_support_links.py")
 
 
 # --- common.get_json ------------------------------------------------------------------------------
@@ -423,3 +424,55 @@ def test_photos_all_requests_failed_writes_nothing(monkeypatch, tmp_path):
         run_photos(monkeypatch, tmp_path, {}, previous)
     assert exc.value.code == 1
     assert json.loads((tmp_path / "reef_photos.json").read_text()) == previous
+
+
+# --- 07_check_support_links -------------------------------------------------------------------------
+
+class LinkResponse:
+    def __init__(self, status_code, url):
+        self.status_code, self.url = status_code, url
+
+
+def fake_get(status=200, final=None, raises=None):
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append(url)
+        if raises:
+            raise raises
+        return LinkResponse(status, final or url)
+    get.calls = calls
+    return get
+
+
+def test_support_link_ok_on_200_and_same_site_redirect():
+    assert support.check("https://coral.org/donate/", get=fake_get())[0]
+    assert support.check("https://coral.org/donate/", get=fake_get(final="https://give.coral.org/x"))[0]
+    assert support.check("https://reefcheck.org.my/donate/", get=fake_get(final="https://www.reefcheck.org.my/d"))[0]
+
+
+@pytest.mark.parametrize("get, detail", [
+    (fake_get(404), "HTTP 404"),
+    (fake_get(raises=support.requests.ConnectionError()), "ConnectionError"),
+    (fake_get(final="https://parked.example/"), "off-site"),
+    (fake_get(final="http://coral.org/donate/"), "non-https"),
+])
+def test_support_link_broken(get, detail):
+    ok, why = support.check("https://coral.org/donate/", get=get)
+    assert not ok and detail in why
+
+
+def test_support_link_http_is_broken_without_a_request():
+    get = fake_get()
+    assert support.check("http://coral.org/donate/", get=get) == (False, "not https")
+    assert get.calls == []
+
+
+def test_support_links_report_only_unless_strict(tmp_path, monkeypatch):
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    path = tmp_path / "support_links.json"
+    path.write_text(json.dumps({"organisations": {"a": {"url": "https://a.test/donate/"}}}))
+    assert support.main(["--path", str(path)], get=fake_get(404)) == 0
+    assert support.main(["--path", str(path), "--strict"], get=fake_get(404)) == 1
+    assert support.main(["--path", str(path), "--strict"], get=fake_get()) == 0
+    assert support.main(["--path", str(tmp_path / "absent.json")]) == 1

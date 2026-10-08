@@ -9,6 +9,7 @@ import PlainSummary from "@/components/PlainSummary";
 import ReefImagery from "@/components/ReefImagery";
 import ReefInsight from "@/components/ReefInsight";
 import ReefNews from "@/components/ReefNews";
+import ReefSupport from "@/components/ReefSupport";
 import ResilienceScore from "@/components/ResilienceScore";
 import SurveyHistory from "@/components/SurveyHistory";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,7 @@ export default function ReefAnalysisPanel({
           {reef.name}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{reef.region}</p>
+        <ReefSupport reefId={reef.id} />
       </header>
 
       <div className={cn("mt-6", wide && "md:grid md:grid-cols-2 md:gap-10")}>

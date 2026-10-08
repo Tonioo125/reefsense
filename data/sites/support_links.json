@@ -1,0 +1,297 @@
+{
+  "_about": "Reef conservation organisations shown as 'Support reef conservation' links in the ReefSense reef panel (GET /api/reefs/{id}/support). Curated by hand: no API maps a reef to a donation page. Resolution, most specific first: site (site_id) -> region (full region label or the province before ', ') -> country (country after ', ', or the full region label) -> global. The first matching scope wins and its 1-3 organisations are shown.",
+  "_rule": "Only add an organisation whose donation, support or membership page you have opened yourself: https only, HTTP 200, genuinely that organisation's own page. Never guess a URL path. Set verified_on to the day you checked. pipeline/07_check_support_links.py re-checks every URL.",
+  "organisations": {
+    "coral-reef-alliance": {
+      "name": "Coral Reef Alliance (CORAL)",
+      "url": "https://coral.org/donate/",
+      "description": "Nonprofit working with local communities to reduce direct threats to coral reefs.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "reef-check": {
+      "name": "Reef Check Foundation",
+      "url": "https://www.reefcheck.org/donate/",
+      "description": "Trains volunteer divers to survey reef health with a standard method, worldwide.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "reef-world": {
+      "name": "The Reef-World Foundation",
+      "url": "https://reef-world.org/donate/",
+      "description": "Charity that coordinates Green Fins, the UN Environment Programme's sustainable diving initiative.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "coral-triangle-center": {
+      "name": "Coral Triangle Center",
+      "url": "https://coraltrianglecenter.org/donate/",
+      "description": "Indonesian foundation training marine protected area managers, with learning sites in Nusa Penida and the Banda Islands.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "lini": {
+      "name": "Yayasan LINI (Indonesian Nature Foundation)",
+      "url": "https://lini.or.id/donate/",
+      "description": "Indonesian foundation building coastal communities' capacity for marine conservation.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "ocean-gardener": {
+      "name": "Ocean Gardener",
+      "url": "https://oceangardener.org/donate/",
+      "description": "Bali foundation growing and replanting corals in community coral nurseries.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "coral-guardian": {
+      "name": "Coral Guardian",
+      "url": "https://don.coralguardian.org/en/support-coral-guardian-become-a-coral-guardian/",
+      "description": "NGO restoring reefs with local communities around Hatamin island, Flores, near Komodo National Park.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "kuroshio-biological-research-foundation": {
+      "name": "Kuroshio Biological Research Foundation",
+      "url": "https://kuroshio.or.jp/en-donations/",
+      "description": "Marine research station in Otsuki, Kochi, studying corals and sea life of the Kuroshio current.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "kuroshio-jikkan-center": {
+      "name": "Kuroshio Jikkan Center (黒潮実感センター)",
+      "url": "https://kuroshio.asia/support/supporter/",
+      "description": "NPO on Kashiwajima island caring for its sea with residents and running nature education.",
+      "language": "ja",
+      "verified_on": "2026-10-08"
+    },
+    "team-chura-sango": {
+      "name": "Team Chura Sango (チーム美らサンゴ)",
+      "url": "https://tyurasango.com/contribute/",
+      "description": "Partnership of companies running coral planting and awareness programmes in Onna, Okinawa.",
+      "language": "ja",
+      "verified_on": "2026-10-08"
+    },
+    "sango-hozen-kyokai": {
+      "name": "Coral Conservation Association (サンゴ保全協会)",
+      "url": "https://sea-growth-okinawa.com/donation/",
+      "description": "Okinawa association planting corals and running marine conservation activities in Onna.",
+      "language": "ja",
+      "verified_on": "2026-10-08"
+    },
+    "wwf-japan": {
+      "name": "WWF Japan",
+      "url": "https://www.wwf.or.jp/support/",
+      "description": "WWF's Japan office; its coral reef work includes Shiraho on Ishigaki and Amami Oshima.",
+      "language": "ja",
+      "verified_on": "2026-10-08"
+    },
+    "reef-check-malaysia": {
+      "name": "Reef Check Malaysia",
+      "url": "https://reefcheck.org.my/donate/",
+      "description": "Malaysian nonprofit surveying reefs and supporting community-led marine conservation.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "wwf-malaysia": {
+      "name": "WWF-Malaysia",
+      "url": "https://www.wwf.org.my/how_you_can_help/donate_now/conserve_our_coral_reefs/",
+      "description": "Coral restoration and monitoring in Tun Mustapha Park, Malaysia's largest multi-use marine park.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "marine-conservation-philippines": {
+      "name": "Marine Conservation Philippines",
+      "url": "https://marineconservationphilippines.org/donate/",
+      "description": "Nonprofit in Zamboanguita, Negros Oriental, surveying and protecting coastal reefs.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "save-philippine-seas": {
+      "name": "Save Philippine Seas",
+      "url": "https://www.savephilippineseas.org/donate",
+      "description": "Filipino nonprofit mobilising communities and young people for marine conservation.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "marine-conservation-cambodia": {
+      "name": "Marine Conservation Cambodia",
+      "url": "https://www.marineconservationcambodia.org/donate-now",
+      "description": "Nonprofit protecting Cambodia's marine ecosystems with the Fisheries Administration and fishers.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "song-saa-foundation": {
+      "name": "Song Saa Foundation",
+      "url": "https://songsaafoundation.org/make-a-donation",
+      "description": "Nonprofit protecting the marine habitats and supporting the communities of the Koh Rong Archipelago.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "fauna-flora-cambodia": {
+      "name": "Fauna & Flora (Cambodia marine programme)",
+      "url": "https://www.fauna-flora.org/appeals/project-cambodia-marine/",
+      "description": "Supports community fisheries and Cambodia's marine protected areas.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "new-heaven-reef-conservation": {
+      "name": "New Heaven Reef Conservation Program",
+      "url": "https://www.newheavenreefconservation.org/contact-us/ways-to-help-donate",
+      "description": "Restores and monitors the coral reefs around Koh Tao with coral nurseries and artificial reefs.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    },
+    "wwf-hong-kong": {
+      "name": "WWF-Hong Kong",
+      "url": "https://www.wwf.org.hk/en/support/donation/",
+      "description": "WWF's Hong Kong office; runs a coral restoration initiative with the Chinese University of Hong Kong.",
+      "language": "en",
+      "verified_on": "2026-10-08"
+    }
+  },
+  "scopes": [
+    {
+      "tier": "site",
+      "match": ["NP01", "NP02", "NP03", "NP04"],
+      "orgs": [
+        {"org": "coral-triangle-center", "scope": "the Nusa Penida MPA", "reach": "local"},
+        {"org": "ocean-gardener", "scope": "Bali", "reach": "local"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Bali", "East Bali", "Padang Bai", "West Bali", "North Bali", "South Bali"],
+      "orgs": [
+        {"org": "ocean-gardener", "scope": "Bali", "reach": "local"},
+        {"org": "coral-triangle-center", "scope": "Bali", "reach": "local"},
+        {"org": "lini", "scope": "Indonesia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["East Nusa Tenggara"],
+      "orgs": [
+        {"org": "coral-guardian", "scope": "Flores, East Nusa Tenggara", "reach": "local"},
+        {"org": "coral-triangle-center", "scope": "Indonesia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Maluku"],
+      "orgs": [
+        {"org": "coral-triangle-center", "scope": "the Banda Islands, Maluku", "reach": "local"},
+        {"org": "lini", "scope": "Indonesia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Kochi"],
+      "orgs": [
+        {"org": "kuroshio-biological-research-foundation", "scope": "Kochi Prefecture", "reach": "local"},
+        {"org": "kuroshio-jikkan-center", "scope": "Kashiwajima, Kochi Prefecture", "reach": "local"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Okinawa", "Japan — Okinawa"],
+      "orgs": [
+        {"org": "team-chura-sango", "scope": "Onna, Okinawa", "reach": "local"},
+        {"org": "sango-hozen-kyokai", "scope": "Onna, Okinawa", "reach": "local"},
+        {"org": "wwf-japan", "scope": "Shiraho, Ishigaki (Okinawa)", "reach": "local"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Sabah"],
+      "orgs": [
+        {"org": "wwf-malaysia", "scope": "Tun Mustapha Park, Sabah", "reach": "local"},
+        {"org": "reef-check-malaysia", "scope": "Malaysia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Central Visayas"],
+      "orgs": [
+        {"org": "marine-conservation-philippines", "scope": "Negros Oriental", "reach": "local"},
+        {"org": "save-philippine-seas", "scope": "the Philippines", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Sihanoukville"],
+      "orgs": [
+        {"org": "song-saa-foundation", "scope": "the Koh Rong Archipelago", "reach": "local"},
+        {"org": "marine-conservation-cambodia", "scope": "Cambodia", "reach": "national"},
+        {"org": "fauna-flora-cambodia", "scope": "Cambodia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "region",
+      "match": ["Hong Kong"],
+      "orgs": [
+        {"org": "wwf-hong-kong", "scope": "Hong Kong", "reach": "local"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Indonesia", "Indonesia — Coral Triangle"],
+      "orgs": [
+        {"org": "coral-triangle-center", "scope": "Indonesia", "reach": "national"},
+        {"org": "lini", "scope": "Indonesia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Japan"],
+      "orgs": [
+        {"org": "wwf-japan", "scope": "Japan", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Malaysia"],
+      "orgs": [
+        {"org": "reef-check-malaysia", "scope": "Malaysia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Philippines", "Philippines — Sulu Sea"],
+      "orgs": [
+        {"org": "save-philippine-seas", "scope": "the Philippines", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Cambodia"],
+      "orgs": [
+        {"org": "marine-conservation-cambodia", "scope": "Cambodia", "reach": "national"},
+        {"org": "fauna-flora-cambodia", "scope": "Cambodia", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["Thailand"],
+      "orgs": [
+        {"org": "new-heaven-reef-conservation", "scope": "Koh Tao, Surat Thani", "reach": "local"}
+      ]
+    },
+    {
+      "tier": "country",
+      "match": ["East Timor"],
+      "orgs": [
+        {"org": "coral-triangle-center", "scope": "Timor-Leste", "reach": "national"}
+      ]
+    },
+    {
+      "tier": "global",
+      "match": [],
+      "orgs": [
+        {"org": "coral-reef-alliance", "scope": "Global", "reach": "global"},
+        {"org": "reef-check", "scope": "Global", "reach": "global"},
+        {"org": "reef-world", "scope": "Global", "reach": "global"}
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """ReefCast API: serves precomputed site scores, an adjustable restoration-priority ranking,
 and the ReefSense contract (/api/reefs, /api/predict, /api/reefs/{id}/photos for cached
-iNaturalist reef photos from pipeline/06_fetch_reef_photos.py).
+iNaturalist reef photos from pipeline/06_fetch_reef_photos.py, /api/reefs/{id}/support for curated
+reef conservation organisations from data/sites/support_links.json).
 
 uvicorn main:app --reload --port 8000   (run from the backend/ folder)
 
@@ -21,6 +22,7 @@ from datetime import date, timedelta
 from functools import lru_cache
 from math import cos, radians
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +36,8 @@ from news import news_for_region
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
 PHOTOS_PATH = Path(os.getenv("REEFCAST_PHOTOS", ROOT / "data/processed/reef_photos.json"))
+# Curated reef conservation organisations per place (hand-made, see the file's _rule).
+SUPPORT_PATH = Path(os.getenv("REEFCAST_SUPPORT", ROOT / "data/sites/support_links.json"))
 REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
 HEAT_SERIES_PATH = ROOT / "data/processed/crw_heat_grid_series.json"  # pipeline/02b_fetch_crw_grid.py
 # Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
@@ -128,6 +132,90 @@ def load_photos():
 def _read_photos(path, _mtime_ns):
     """Parsed once per (path, mtime): the weekly sync rewrites the file in place."""
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+SUPPORT_TIERS = ("site", "region", "country", "global")  # most specific first
+SUPPORT_REACH = {"local", "national", "global"}
+
+
+def validate_support_links(cfg):
+    """Checks data/sites/support_links.json; raises ValueError naming the first problem found."""
+    orgs = cfg.get("organisations")
+    scopes = cfg.get("scopes")
+    if not isinstance(orgs, dict) or not orgs:
+        raise ValueError("'organisations' must be a non-empty object")
+    if not isinstance(scopes, list) or not scopes:
+        raise ValueError("'scopes' must be a non-empty list")
+    for org_id, org in orgs.items():
+        for key in ("name", "url", "description", "verified_on"):
+            if not isinstance(org.get(key), str) or not org[key].strip():
+                raise ValueError(f"organisation {org_id!r}: missing {key!r}")
+        url = urlparse(org["url"])
+        if url.scheme != "https" or not url.netloc:
+            raise ValueError(f"organisation {org_id!r}: url must be https ({org['url']!r})")
+        try:
+            date.fromisoformat(org["verified_on"])
+        except ValueError:
+            raise ValueError(f"organisation {org_id!r}: verified_on must be an ISO date") from None
+    for i, scope in enumerate(scopes):
+        if scope.get("tier") not in SUPPORT_TIERS:
+            raise ValueError(f"scope {i}: tier must be one of {', '.join(SUPPORT_TIERS)}")
+        match = scope.get("match")
+        if not isinstance(match, list) or not all(isinstance(m, str) for m in match):
+            raise ValueError(f"scope {i}: 'match' must be a list of strings")
+        entries = scope.get("orgs")
+        if not isinstance(entries, list) or not 1 <= len(entries) <= 3:
+            raise ValueError(f"scope {i}: needs 1-3 organisations")
+        for entry in entries:
+            if entry.get("org") not in orgs:
+                raise ValueError(f"scope {i}: unknown organisation {entry.get('org')!r}")
+            if entry.get("reach") not in SUPPORT_REACH:
+                raise ValueError(f"scope {i}: reach must be one of {', '.join(sorted(SUPPORT_REACH))}")
+            if not isinstance(entry.get("scope"), str) or not entry["scope"].strip():
+                raise ValueError(f"scope {i}: missing 'scope' label")
+    if sum(s["tier"] == "global" for s in scopes) != 1:
+        raise ValueError("there must be exactly one global scope")
+    return cfg
+
+
+@lru_cache(maxsize=1)
+def _read_support(path, _mtime_ns):
+    """Parsed and validated once per (path, mtime)."""
+    return validate_support_links(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+def load_support_links():
+    try:
+        mtime = SUPPORT_PATH.stat().st_mtime_ns
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail=f"No support links at {SUPPORT_PATH}.") from None
+    try:
+        return _read_support(str(SUPPORT_PATH), mtime)
+    except ValueError as err:  # also json.JSONDecodeError
+        raise HTTPException(status_code=503, detail=f"Invalid support_links.json: {err}") from None
+
+
+def support_keys(site, tier):
+    """Labels a reef matches at a tier. Region labels are "Province, Country" (GCBD) or a place name (demo).
+    nearest_country() is not used: for reefs outside Asia it would pick an Asian country."""
+    region = site["region"]
+    if tier == "site":
+        return {site["site_id"]}
+    keys = {region}
+    if ", " in region:
+        province, country = region.rsplit(", ", 1)
+        keys.add(province if tier == "region" else country)
+    return keys
+
+
+def resolve_support(site, cfg):
+    """(tier, scope) of the most specific scope matching the reef; the global scope always matches."""
+    for tier in SUPPORT_TIERS:
+        keys = set() if tier == "global" else support_keys(site, tier)
+        for scope in cfg["scopes"]:
+            if scope["tier"] == tier and (tier == "global" or keys & set(scope["match"])):
+                return tier, scope
+    raise ValueError("no global scope")  # validate_support_links guarantees one
 
 
 def warm_caches():
@@ -486,6 +574,30 @@ def reef_news(reef_id: str):
     site = find_site(reef_id)
     return {"reefId": reef_id, "region": site["region"],
             **news_for_region(site["region"], country=nearest_country(site))}
+
+
+@app.get("/api/reefs/{reef_id}/support")
+def reef_support(reef_id: str):
+    """Reef conservation organisations near the reef (curated, data/sites/support_links.json).
+    Most specific match wins: site, region, country, then global."""
+    site = find_site(reef_id)
+    cfg = load_support_links()
+    tier, scope = resolve_support(site, cfg)
+    orgs = cfg["organisations"]
+    return {
+        "reefId": reef_id,
+        "tier": tier,
+        "organisations": [{
+            "id": e["org"],
+            "name": orgs[e["org"]]["name"],
+            "url": orgs[e["org"]]["url"],
+            "description": orgs[e["org"]]["description"],
+            "scope": e["scope"],
+            "reach": e["reach"],
+            "language": orgs[e["org"]].get("language"),
+            "verifiedOn": orgs[e["org"]]["verified_on"],
+        } for e in scope["orgs"]],
+    }
 
 
 HISTORY_FIRST_YEAR = 1998  # earlier years have under 30 bleaching surveys each

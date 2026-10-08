@@ -11,6 +11,7 @@ import {
   getReef,
   getReefNews,
   getReefPhotos,
+  getReefSupport,
   getSurveyHistory,
   listReefs,
   predict,
@@ -71,6 +72,7 @@ describe("endpoints", () => {
     await getSurveyHistory("GL15");
     await getReefNews("GL15");
     await getBleachingHistory();
+    await getReefSupport("GL15");
 
     const urls = fetchMock.mock.calls.map(([url]) => url);
     expect(urls).toEqual([
@@ -84,6 +86,7 @@ describe("endpoints", () => {
       "http://api.test/api/reefs/GL15/survey-history",
       "http://api.test/api/reefs/GL15/news",
       "http://api.test/api/bleaching-history",
+      "http://api.test/api/reefs/GL15/support",
     ]);
     const [, init] = fetchMock.mock.calls[3];
     expect(init?.method).toBe("POST");
@@ -93,6 +96,17 @@ describe("endpoints", () => {
       dhwMax12w: 4,
     });
     expect((init?.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("loads a reef's support organisations", async () => {
+    const support = {
+      reefId: "GCBD5179",
+      tier: "region",
+      organisations: [{ id: "a", name: "A", url: "https://a.test/donate/", reach: "local", scope: "Kochi" }],
+    };
+    const fetchMock = useHttp(() => jsonResponse(support));
+    expect(await getReefSupport("GCBD5179")).toEqual(support);
+    expect(fetchMock.mock.calls[0][0]).toBe("http://api.test/api/reefs/GCBD5179/support");
   });
 
   it("encodes ids in the path", async () => {
@@ -126,6 +140,7 @@ describe("errors", () => {
     expect(await getReef("nope")).toBeNull();
     expect(await getExplanation("nope")).toBeNull();
     expect(await getReefPhotos("nope")).toEqual([]);
+    expect(await getReefSupport("nope")).toBeNull();
   });
 
   it("rejects other errors with ApiError", async () => {

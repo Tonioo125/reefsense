@@ -213,6 +213,35 @@ export interface ReefNews {
   articles: NewsArticle[];
 }
 
+/** Which place matched in GET /api/reefs/{id}/support, most specific first. */
+export type SupportTier = "site" | "region" | "country" | "global";
+
+/** How far the organisation's work reaches, relative to `scope`. */
+export type SupportReach = "local" | "national" | "global";
+
+/** A reef conservation organisation near the reef (GET /api/reefs/{id}/support). */
+export interface SupportOrganisation {
+  id: string;
+  name: string;
+  /** The organisation's own donate/support page (https). */
+  url: string;
+  description: string;
+  /** Place the organisation works in, e.g. "Kochi Prefecture". */
+  scope: string;
+  reach: SupportReach;
+  /** Language of the linked page, e.g. "ja"; null if not recorded. */
+  language: string | null;
+  /** ISO date the link was last checked by hand. */
+  verifiedOn: string;
+}
+
+/** GET /api/reefs/{id}/support: curated organisations, at least the global fallback. */
+export interface ReefSupport {
+  reefId: string;
+  tier: SupportTier;
+  organisations: SupportOrganisation[];
+}
+
 /** One year of observed bleaching across all surveys (GET /api/bleaching-history). */
 export interface HistoryYear {
   year: number;
