@@ -40,6 +40,12 @@ def nearest_ocean_pixel(lat, lon):
     return float(best["latitude"]), float(best["longitude"]), km
 
 
+def merge_previous(previous_df, new_df):
+    """New rows plus the previous rows of every site_id that new_df does not cover."""
+    kept = previous_df[~previous_df["site_id"].isin(new_df["site_id"].unique())]
+    return pd.concat([kept, new_df], ignore_index=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=180)
@@ -49,12 +55,13 @@ def main():
     sites = pd.read_csv(SITES_CSV)
     if args.only:
         sites = sites[sites["site_id"].isin(args.only)]
-    frames = []
+    frames, failed = [], []
     for site in sites.itertuples():
         print(f"{site.site_id} {site.name} ({site.lat}, {site.lon})", flush=True)
         df = fetch_point(site.lat, site.lon, args.days)
         if df is None:
             print("  skipped: ERDDAP unreachable", flush=True)
+            failed.append(site.site_id)
             continue
         if df["CRW_DHW"].isna().all():
             pixel = nearest_ocean_pixel(site.lat, site.lon)
@@ -65,17 +72,20 @@ def main():
                       f"{pixel[2]:.1f} km away", flush=True)
                 df = fetch_point(pixel[0], pixel[1], args.days)
                 if df is None:
+                    failed.append(site.site_id)
                     continue
         df.insert(0, "site_id", site.site_id)
         frames.append(df)
         time.sleep(1)  # be polite to the public server
 
+    if failed:
+        print(f"failed: {failed}", flush=True)
     if not frames:
-        raise SystemExit("No CRW data fetched.")
+        raise SystemExit("No CRW data fetched; existing file left unchanged.")
     out = pd.concat(frames, ignore_index=True)
-    if args.only and CRW_TIMESERIES.exists():
-        kept = pd.read_csv(CRW_TIMESERIES, parse_dates=["time"])
-        out = pd.concat([kept[~kept["site_id"].isin(out["site_id"].unique())], out], ignore_index=True)
+    # Sites not refetched (--only) or that failed this run keep their previous rows.
+    if CRW_TIMESERIES.exists():
+        out = merge_previous(pd.read_csv(CRW_TIMESERIES, parse_dates=["time"]), out)
     CRW_TIMESERIES.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(CRW_TIMESERIES, index=False)
     print(f"Saved {len(out):,} rows to {CRW_TIMESERIES}")

@@ -1,0 +1,166 @@
+# Scheduled data sync for ReefSense. See pipeline/README.md ("Scheduled data sync").
+# Schedules only run from the default branch (main). No secrets: every source is public and the
+# commit is pushed with the automatic GITHUB_TOKEN.
+name: Data sync
+
+on:
+  schedule:
+    # Daily NOAA Coral Reef Watch refresh, 22:30 UTC = 05:30 WIB. CRW publishes the daily 5 km product
+    # around 13:30 US Eastern (17:30 UTC in summer, 18:30 UTC in winter); the CoastWatch PFEG ERDDAP
+    # mirror lags behind, so this leaves a 4-5 h buffer. :30 avoids GitHub's top-of-hour load.
+    - cron: "30 22 * * *"
+    # Weekly GCBD version check, MERMAID coral cover and iNaturalist photos: Monday 00:00 UTC = 07:00 WIB.
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      sync:
+        description: Which sync to run
+        type: choice
+        options:
+          - all
+          - daily
+          - weekly
+        default: all
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    if: github.event.schedule == '30 22 * * *' || (github.event_name == 'workflow_dispatch' && inputs.sync != 'weekly')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+      - run: pip install -r pipeline/requirements.txt
+
+      # Each source step has its own timeout-minutes (summing to well under the job's 120) so a hung
+      # server fails only that step; continue-on-error then lets the commit and summary steps run.
+      - name: NOAA CRW series for demo sites (02)
+        id: crw_points
+        continue-on-error: true
+        timeout-minutes: 35
+        run: python pipeline/02_fetch_crw.py --days 180
+      - name: NOAA CRW grids for GCBD Asia sites (02b)
+        id: crw_grid
+        continue-on-error: true
+        timeout-minutes: 60
+        run: python pipeline/02b_fetch_crw_grid.py --refresh
+      - name: Rescore sites (04) if the model is available
+        id: score
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          if [ -f data/processed/bleaching_model.joblib ] && [ -f data/raw/gcbd.csv ]; then
+            python pipeline/04_score_sites.py
+            echo "scored=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Scoring skipped::data/processed/bleaching_model.joblib and data/raw/gcbd.csv are gitignored, so sites_scored.json was not rebuilt. Rescore locally (pipeline 03 then 04) and commit it."
+            echo "scored=skipped" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit data changes
+        if: ${{ !cancelled() }}
+        run: >-
+          bash .github/scripts/commit-data.sh "data: daily NOAA sync $(date -u +%F)"
+          data/processed/crw_timeseries.csv data/processed/crw_heat_grid.csv data/processed/sites_scored.json
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        env:
+          CRW_POINTS: ${{ steps.crw_points.outcome }}
+          CRW_GRID: ${{ steps.crw_grid.outcome }}
+          SCORE_OUTCOME: ${{ steps.score.outcome }}
+          SCORED: ${{ steps.score.outputs.scored }}
+        run: |
+          if [ "$SCORED" = skipped ]; then
+            score="skipped (model and raw GCBD are not in the repository)"
+          else
+            score="$SCORE_OUTCOME"
+          fi
+          {
+            echo "### Daily NOAA sync"
+            echo ""
+            echo "| Source | Outcome |"
+            echo "| --- | --- |"
+            echo "| NOAA CRW series, demo sites (02) | $CRW_POINTS |"
+            echo "| NOAA CRW grids, GCBD Asia sites (02b) | $CRW_GRID |"
+            echo "| Scoring (04) | $score |"
+            echo ""
+            echo "Failed sources keep their previous data. The map changes only when sites_scored.json is rescored."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CRW_POINTS" = failure ] && [ "$CRW_GRID" = failure ]; then
+            echo "::error::Every daily source failed"
+            exit 1
+          fi
+
+  weekly:
+    needs: daily
+    if: ${{ !cancelled() && (github.event.schedule == '0 0 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.sync != 'daily')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+      - run: pip install -r pipeline/requirements.txt
+
+      # Per-step timeouts, as in the daily job (sum 110 < 120). Measured locally: 05 ~1.5 min, 06 ~55 min;
+      # 01d is a 1-byte request unless upstream changed (then a 16 MB download plus 01c).
+      - name: GCBD version check (01d)
+        id: gcbd
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python pipeline/01d_sync_gcbd.py
+      - name: MERMAID hard coral cover (05)
+        id: mermaid
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python pipeline/05_fetch_mermaid.py
+      - name: iNaturalist reef photos (06)
+        id: photos
+        continue-on-error: true
+        timeout-minutes: 85
+        run: python pipeline/06_fetch_reef_photos.py
+
+      - name: Commit data changes
+        if: ${{ !cancelled() }}
+        run: >-
+          bash .github/scripts/commit-data.sh "data: weekly sync $(date -u +%F)"
+          data/sites/gcbd_asia.csv data/sites/gcbd_source.json
+          data/processed/mermaid_sites.json data/processed/reef_photos.json
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        env:
+          GCBD: ${{ steps.gcbd.outcome }}
+          MERMAID: ${{ steps.mermaid.outcome }}
+          PHOTOS: ${{ steps.photos.outcome }}
+        run: |
+          {
+            echo "### Weekly sync"
+            echo ""
+            echo "| Source | Outcome |"
+            echo "| --- | --- |"
+            echo "| GCBD version check (01d) | $GCBD |"
+            echo "| MERMAID hard coral cover (05) | $MERMAID |"
+            echo "| iNaturalist reef photos (06) | $PHOTOS |"
+            echo ""
+            echo "Failed sources keep their previous data. Scoring is not part of the weekly sync."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$GCBD" = failure ] && [ "$MERMAID" = failure ] && [ "$PHOTOS" = failure ]; then
+            echo "::error::Every weekly source failed"
+            exit 1
+          fi

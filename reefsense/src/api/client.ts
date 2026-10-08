@@ -5,6 +5,7 @@ import type {
   PredictResponse,
   Reef,
   ReefExplanation,
+  ReefPhoto,
 } from "@/types/reef";
 
 /**
@@ -15,6 +16,7 @@ import type {
  *   GET  /api/reefs/{id}              -> getReef(id)
  *   POST /api/predict                 -> predict(input)
  *   GET  /api/reefs/{id}/explanation  -> getExplanation(id)
+ *   GET  /api/reefs/{id}/photos       -> getReefPhotos(id)
  *   GET  /api/model                   -> getModelMetrics()
  *   GET  /api/noaa-gap                -> getNoaaGap()
  */
@@ -77,6 +79,11 @@ export function getReef(id: string): Promise<Reef | null> {
 /** GET /api/reefs/{id}/explanation */
 export function getExplanation(id: string): Promise<ReefExplanation | null> {
   return httpOrNull<ReefExplanation>(`/reefs/${encodeURIComponent(id)}/explanation`);
+}
+
+/** GET /api/reefs/{id}/photos: community photos near the reef (404 or none -> []). */
+export async function getReefPhotos(id: string): Promise<ReefPhoto[]> {
+  return (await httpOrNull<ReefPhoto[]>(`/reefs/${encodeURIComponent(id)}/photos`)) ?? [];
 }
 
 /** POST /api/predict: score any location under a given heat-stress scenario. */

@@ -6,6 +6,7 @@ import {
   getModelMetrics,
   getNoaaGap,
   getReef,
+  getReefPhotos,
   listReefs,
   predict,
   reefAreaTileUrl,
@@ -86,6 +87,17 @@ describe("endpoints", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("http://api.test/api/reefs/a%2Fb");
   });
 
+  it("loads reef photos", async () => {
+    const photo = { id: "1", url: "https://img.test/1/medium.jpg", distanceKm: 0.4 };
+    const fetchMock = useHttp(() => jsonResponse([photo]));
+    expect(await getReefPhotos("GL15")).toEqual([photo]);
+    await getReefPhotos("a/b");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "http://api.test/api/reefs/GL15/photos",
+      "http://api.test/api/reefs/a%2Fb/photos",
+    ]);
+  });
+
   it("returns model metrics only when the API reports a trained model", async () => {
     useHttp(() => jsonResponse({ metrics: { model: { roc_auc: 0.75, pr_auc: 0.56 }, features: [] } }));
     expect((await getModelMetrics())?.model.roc_auc).toBe(0.75);
@@ -99,12 +111,14 @@ describe("errors", () => {
     useHttp(() => jsonResponse({ detail: "Not found" }, 404));
     expect(await getReef("nope")).toBeNull();
     expect(await getExplanation("nope")).toBeNull();
+    expect(await getReefPhotos("nope")).toEqual([]);
   });
 
   it("rejects other errors with ApiError", async () => {
     useHttp(() => jsonResponse({ detail: "boom" }, 503));
     await expect(listReefs()).rejects.toBeInstanceOf(ApiError);
     await expect(getReef("GL15")).rejects.toMatchObject({ status: 503 });
+    await expect(getReefPhotos("GL15")).rejects.toBeInstanceOf(ApiError);
   });
 
   it("rejects with ApiError when the API is unreachable (no fallback data)", async () => {

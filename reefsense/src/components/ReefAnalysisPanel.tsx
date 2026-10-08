@@ -4,19 +4,26 @@ import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
 import HeatScenario from "@/components/HeatScenario";
 import NoaaGapNote from "@/components/NoaaGapNote";
+import ReefImagery from "@/components/ReefImagery";
 import ReefInsight from "@/components/ReefInsight";
 import ResilienceScore from "@/components/ResilienceScore";
 import { Button } from "@/components/ui/button";
 import type { DetailStatus } from "@/hooks/useReefDetail";
 import { cn } from "@/lib/utils";
-import type { Reef, ReefExplanation } from "@/types/reef";
+import type { Reef, ReefExplanation, ReefPhoto } from "@/types/reef";
 
 interface ReefAnalysisPanelProps {
   reef: Reef;
   explanation: ReefExplanation | null;
   status: DetailStatus;
   error: string | null;
+  photos: ReefPhoto[];
+  photosStatus: DetailStatus;
+  /** Reef the photos belong to; photos for another reef are treated as still loading. */
+  photosReefId?: string | null;
   onRetry: () => void;
+  /** Reloads the community photos after an error. */
+  onPhotosRetry: () => void;
   onClose: () => void;
   /** "wide" lays the panel out in two columns (tablet, below the map). */
   layout?: "stacked" | "wide";
@@ -61,15 +68,19 @@ function DetailError({ message, onRetry }: { message: string; onRetry: () => voi
 
 /**
  * Detailed analysis for one reef: headline probability, environmental
- * predictors, the model explanation and a plain-language insight.
- * Purely presentational; data loading lives in `useReefDetail`.
+ * predictors, the model explanation, a plain-language insight and reef imagery.
+ * Purely presentational; data loading lives in `useReefDetail` and `useReefPhotos`.
  */
 export default function ReefAnalysisPanel({
   reef,
   explanation,
   status,
   error,
+  photos,
+  photosStatus,
+  photosReefId,
   onRetry,
+  onPhotosRetry,
   onClose,
   layout = "stacked",
   headingId,
@@ -77,6 +88,7 @@ export default function ReefAnalysisPanel({
 }: ReefAnalysisPanelProps) {
   const wide = layout === "wide";
   const ready = explanation !== null && explanation.reefId === reef.id;
+  const ownPhotos = photosReefId === undefined || photosReefId === reef.id;
 
   return (
     <article key={reef.id} className="animate-slide-up p-6" aria-labelledby={headingId}>
@@ -159,6 +171,14 @@ export default function ReefAnalysisPanel({
           )}
         </div>
       </div>
+
+      <Divider />
+      <ReefImagery
+        reef={reef}
+        photos={ownPhotos ? photos : []}
+        status={ownPhotos ? photosStatus : "loading"}
+        onRetry={onPhotosRetry}
+      />
     </article>
   );
 }

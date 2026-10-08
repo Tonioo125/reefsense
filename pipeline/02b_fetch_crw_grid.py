@@ -1,6 +1,6 @@
 """Fetch NOAA Coral Reef Watch heat stress for many sites at once, as regional grids.
 
-python pipeline/02b_fetch_crw_grid.py                      # every site in data/sites/gcbd_indonesia.csv
+python pipeline/02b_fetch_crw_grid.py                      # every site in data/sites/gcbd_asia.csv
 python pipeline/02b_fetch_crw_grid.py --sites my_sites.csv --out my_heat.csv
 
 02_fetch_crw.py makes one request per site (~30 s each). Here sites are grouped into CELL_DEG cells and
@@ -10,11 +10,14 @@ each cell's bounding box is downloaded in two requests, which is far faster for 
 (ERDDAP requires every variable in one request to share the same time range, hence two requests.)
 Each site uses its own 5 km pixel, or the nearest ocean pixel within PAD_DEG if its pixel is masked
 as land. Raw downloads are cached in data/raw/crw_grid/ so an interrupted run resumes; pass
---refresh to download fresh data.
+--refresh to download fresh data. Sites in cells that fail keep their rows from the previous output;
+if every cell fails nothing is written and the script exits 1.
 """
 import argparse
 import math
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import pandas as pd
 
@@ -73,6 +76,13 @@ def summarise(site, dhw, sst):
     }
 
 
+def keep_failed(previous_df, new_df, failed_site_ids):
+    """New summaries plus the previous rows of sites whose cells failed this run."""
+    kept = previous_df[previous_df["site_id"].isin(failed_site_ids)
+                       & ~previous_df["site_id"].isin(new_df["site_id"])]
+    return pd.concat([new_df, kept], ignore_index=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sites", default=str(GCBD_SITES_CSV))
@@ -108,7 +118,14 @@ def main():
             print(f"[{done}/{len(boxes)}] cell {cell}: {len(members)} sites"
                   + (f", {masked} using a nearby ocean pixel" if masked else ""), flush=True)
 
+    if not rows:
+        print(f"Every cell failed ({len(failed)}); {args.out} left unchanged.", flush=True)
+        sys.exit(1)
     out = pd.DataFrame(rows)
+    if failed and Path(args.out).exists():
+        failed_ids = sites.loc[sites["cell"].isin(failed), "site_id"]
+        out = keep_failed(pd.read_csv(args.out), out, failed_ids)
+        print(f"Kept previous rows for sites in {len(failed)} failed cells", flush=True)
     out.to_csv(args.out, index=False)
     missing = out["dhw_max_12w"].isna().sum() if "dhw_max_12w" in out else len(out)
     print(f"Saved {len(out):,} site summaries to {args.out}; without heat data: {missing}")

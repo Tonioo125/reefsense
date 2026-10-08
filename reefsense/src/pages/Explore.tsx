@@ -14,6 +14,8 @@ import Reveal from "@/components/Reveal";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReefDetail } from "@/hooks/useReefDetail";
+import { useReefPhotos } from "@/hooks/useReefPhotos";
+import type { ReefPhotos } from "@/hooks/useReefPhotos";
 import { scrollToSection } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 import type {
@@ -168,6 +170,7 @@ export default function Explore() {
   }, [loadAttempt]);
 
   const detail = useReefDetail(selectedId);
+  const photos = useReefPhotos(selectedId);
   const clearSelection = useCallback(() => setSelectedId(null), []);
 
   // Escape closes the analysis panel / bottom sheet.
@@ -206,12 +209,17 @@ export default function Explore() {
   };
 
   // Keep the last content mounted so the bottom sheet can slide out with it.
-  const lastSheet = useRef<{ reef: Reef; explanation: ReefExplanation | null } | null>(null);
-  if (panelReef) lastSheet.current = { reef: panelReef, explanation: detail.explanation };
+  const lastSheet = useRef<{
+    reef: Reef;
+    explanation: ReefExplanation | null;
+    photos: ReefPhotos;
+  } | null>(null);
+  if (panelReef) lastSheet.current = { reef: panelReef, explanation: detail.explanation, photos };
 
   const renderPanel = (
     reef: Reef,
     explanation: ReefExplanation | null,
+    reefPhotos: ReefPhotos,
     layout: "stacked" | "wide",
   ) => (
     <ReefAnalysisPanel
@@ -219,7 +227,11 @@ export default function Explore() {
       explanation={explanation}
       status={detail.status}
       error={detail.error}
+      photos={reefPhotos.photos}
+      photosStatus={reefPhotos.status}
+      photosReefId={reefPhotos.reefId}
       onRetry={detail.retry}
+      onPhotosRetry={reefPhotos.retry}
       onClose={clearSelection}
       layout={layout}
       headingId={headingId}
@@ -317,7 +329,7 @@ export default function Explore() {
             >
               <div className="scroll-subtle lg:flex-1 lg:overflow-y-auto">
                 {panelReef ? (
-                  renderPanel(panelReef, detail.explanation, isLgUp ? "stacked" : "wide")
+                  renderPanel(panelReef, detail.explanation, photos, isLgUp ? "stacked" : "wide")
                 ) : (
                   <PanelEmptyState />
                 )}
@@ -334,7 +346,12 @@ export default function Explore() {
             initialFocusRef={closeButtonRef}
           >
             {lastSheet.current &&
-              renderPanel(lastSheet.current.reef, lastSheet.current.explanation, "stacked")}
+              renderPanel(
+                lastSheet.current.reef,
+                lastSheet.current.explanation,
+                lastSheet.current.photos,
+                "stacked",
+              )}
           </BottomSheet>
         )}
       </section>

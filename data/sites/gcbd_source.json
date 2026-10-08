@@ -1,0 +1,10 @@
+{
+  "url": "https://datadocs.bco-dmo.org/dataset/773466/file/B11vA82u7y2Owp/global_bleaching_environmental.csv",
+  "etag": "\"6534638b0ba811a02d10f8314fb0b712-2\"",
+  "last_modified": "Fri, 30 Jun 2023 16:53:39 GMT",
+  "size": 16772400,
+  "sha256": "78cc014b1e7887f26f4c44a40d4d9213212f3c6217541c6a1b69e723b61bfacb",
+  "sites": 3756,
+  "generated_from": "GCBD SQLite release via 01b+01c (baseline adopted)",
+  "checked": "2026-10-07T16:34:04Z"
+}

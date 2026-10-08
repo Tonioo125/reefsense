@@ -11,14 +11,36 @@ SITES_DIR = ROOT / "data" / "sites"
 # The ERDDAP copy may be a subset; if so, download the full CSV from https://www.bco-dmo.org/dataset/773466
 GCBD_ERDDAP_CSV = "https://erddap.bco-dmo.org/erddap/tabledap/bcodmo_dataset_773466.csv"
 GCBD_RAW = RAW / "gcbd.csv"
+# Version 2 (2022) of the same dataset as one CSV (redirects to a presigned S3 URL; HEAD is refused).
+# 01d_sync_gcbd.py watches it and regenerates gcbd_asia.csv only when it changes.
+GCBD_V2_CSV_URL = ("https://datadocs.bco-dmo.org/dataset/773466/file/B11vA82u7y2Owp/"
+                   "global_bleaching_environmental.csv")
+GCBD_SYNC_RAW = RAW / "gcbd_bcodmo_v2.csv"  # never overwrites the SQLite-derived GCBD_RAW
 
 # NOAA Coral Reef Watch v3.1 daily 5 km (1985-present) via ERDDAP griddap
 CRW_ERDDAP = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW"
 CRW_VARIABLES = ["CRW_DHW", "CRW_SSTANOMALY", "CRW_BAA", "CRW_SST"]
 
+# MERMAID (datamermaid.org) public sample-event summaries: survey hard coral cover (05_fetch_mermaid.py)
+MERMAID_API = "https://api.datamermaid.org/v1"
+
+# iNaturalist community photos of corals near each reef (06_fetch_reef_photos.py)
+INAT_API = "https://api.inaturalist.org/v2"
+# Taxon ids looked up via https://api.inaturalist.org/v1/taxa?q=<name>. Anthozoa (47533) is deliberately
+# not used: it also contains sea anemones, which are not reef-building corals.
+INAT_CORAL_TAXA = {
+    47532: "Scleractinia (stony corals)",
+    340493: "Octocorallia (soft corals)",
+    85898: "Milleporidae (fire corals)",
+}
+USER_AGENT = "ReefSense-data-sync/1.0 (+https://github.com/Tonioo125/reefcast)"
+
 # --- Files produced by the pipeline -------------------------------------
 SITES_CSV = SITES_DIR / "demo_sites.csv"
 GCBD_SITES_CSV = SITES_DIR / "gcbd_asia.csv"  # written by 01c_make_gcbd_sites.py
+GCBD_SITES_COLUMNS = ["site_id", "name", "region", "lat", "lon",
+                      "coral_cover_pct", "refugia_50reefs_plus", "connectivity", "in_mpa"]
+GCBD_SOURCE_MANIFEST = SITES_DIR / "gcbd_source.json"  # upstream fingerprint (01d_sync_gcbd.py)
 SITE_FILES = [SITES_CSV, GCBD_SITES_CSV]  # every list that exists is scored
 CRW_TIMESERIES = PROCESSED / "crw_timeseries.csv"  # per-site point series (02_fetch_crw.py)
 CRW_HEAT_GRID = PROCESSED / "crw_heat_grid.csv"  # per-site summaries from regional grids (02b)
@@ -32,6 +54,8 @@ REEF_AREA_BOXES = [
     (92.0, -12.0, 150.0, 36.0),  # Southeast and East Asia: Indonesia to Japan
 ]
 REEF_AREA_TILES = PROCESSED / "reef_area_tiles"
+MERMAID_SITES = PROCESSED / "mermaid_sites.json"  # nearest MERMAID hard coral cover per reef (05)
+REEF_PHOTOS = PROCESSED / "reef_photos.json"  # openly licensed iNaturalist photos per reef (06)
 
 # UN geoscheme Asia (East, Southeast, South and West Asia), spelled as in GCBD. Egypt is Africa in the
 # UN scheme, so its Sinai reefs are excluded; Pacific islands such as Palau are Oceania.

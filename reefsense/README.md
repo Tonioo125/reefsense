@@ -2,8 +2,6 @@
 
 **An AI-powered GIS platform for exploring the climate resilience of coral reefs.**
 
-> Note: the project folder is still named `reefresilience/`; it will be renamed to `reefsense/`. Commands below run from that folder.
-
 ReefSense helps answer one question:
 
 > _Which coral reef areas are more likely to remain resilient under climate stress?_
@@ -17,6 +15,7 @@ It pairs an interactive global map with explainable, model-based predictions ser
 - **Resilience map**: a world map (React Leaflet + OpenStreetMap) of the scored reef sites, colour-coded by predicted category (High / Medium / Low), with a floating legend and a category filter.
 - **AI prediction**: selecting a reef opens an analysis panel with the predicted probability and its environmental predictors (sea temperature, Degree Heating Weeks, NOAA alert status, coral cover, depth).
 - **AI explanation**: a SHAP-style diverging bar chart showing which predictors raise or lower the estimate, plus a short model insight and how well the estimate is supported by nearby survey data.
+- **Reef imagery**: every analysis panel shows a small Esri World Imagery satellite view of the reef, plus up to six openly licensed iNaturalist coral photos taken within 10 km (credited, each linking to its observation).
 - **Insights**: aggregate patterns across the mapped reefs and the model's cross-validated skill against heat stress alone (Recharts).
 
 ## Tech stack
@@ -27,7 +26,7 @@ All dependency versions are pinned exactly in `package.json`. react-leaflet 4 re
 
 ## Getting started
 
-Requires **Node 18+** (20 recommended, see `.nvmrc`). If your nvm defaults to an older Node, run `nvm use 20` first; Vite 5 fails to start on Node 14/16. The API must be running (see the top-level README for the data pipeline):
+Requires **Node 18+** (20 recommended, see `.nvmrc`). If your nvm defaults to an older Node, run `nvm use 20` first; Vite 5 fails to start on Node 14/16. The API must be running (see [`../pipeline/README.md`](../pipeline/README.md) for the data pipeline):
 
 ```bash
 # terminal 1 — API
@@ -75,6 +74,7 @@ src/
     EnvironmentalMetrics.tsx
     FeatureContributions.tsx # SHAP-style model explanation
     ReefInsight.tsx         # Top factors, data support, environmental summary
+    ReefImagery.tsx         # Satellite view + iNaturalist photo gallery
     InsightsSection.tsx     # Recharts aggregate charts
     AboutSection.tsx
     Footer.tsx
@@ -83,12 +83,15 @@ src/
   hooks/
     useMediaQuery.ts        # Breakpoints + prefers-reduced-motion
     useReefDetail.ts        # Loads reef + explanation for the selection
+    useReefPhotos.ts        # Loads community photos for the selection
     useInView.ts            # IntersectionObserver, latches once visible
     useCountUp.ts           # Eased number count-up
     useScroll.ts            # Navbar scroll state + hero parallax
   lib/
     reef.ts                 # Thresholds, colours, labels, formatters
     reef.test.ts
+    imagery.ts              # Satellite tile constants, photo licence/alt/credit text
+    imagery.test.ts
     motion.ts               # Easing, count-up and parallax maths
     motion.test.ts
     scroll.ts
@@ -124,10 +127,17 @@ Scroll reveals, the hero parallax, count-ups and the chart and bar animations us
 | `GET /api/reefs` | `listReefs()` | `Reef[]` |
 | `GET /api/reefs/{id}` | `getReef(id)` | `Reef` (404 → `null`) |
 | `GET /api/reefs/{id}/explanation` | `getExplanation(id)` | `ReefExplanation` (404 → `null`) |
+| `GET /api/reefs/{id}/photos` | `getReefPhotos(id)` | `ReefPhoto[]` (404 → `[]`) |
 | `POST /api/predict` | `predict(input)` | body `PredictRequest`, returns `PredictResponse` |
 | `GET /api/model` | `getModelMetrics()` | `ModelMetrics` |
 
 Non-2xx responses other than 404, and an unreachable API, surface as an `ApiError`, which the UI shows with a "Try again" action.
+
+## Data sync & imagery
+
+- A GitHub Actions workflow (`.github/workflows/data-sync.yml`) refreshes the data: daily at 22:30 UTC for NOAA Coral Reef Watch heat stress, and weekly on Monday at 00:00 UTC for GCBD, MERMAID coral cover and iNaturalist photos. Details, manual runs and caveats are in [`../pipeline/README.md`](../pipeline/README.md).
+- Community photos come from iNaturalist (`data/processed/reef_photos.json`, served by `GET /api/reefs/{id}/photos`). Only Creative Commons-licensed photos are used; each shows its photographer and licence and links to its observation. The gallery is captioned "Community photos near this site via iNaturalist — not a record of current reef condition."
+- The satellite view uses Esri World Imagery tiles with the attribution Esri requires; review Esri's terms of use before production use. It is always shown, so a reef without photos (or a failed photo request) still has imagery.
 
 ## Notes
 

@@ -1,5 +1,6 @@
 """ReefCast API: serves precomputed site scores, an adjustable restoration-priority ranking,
-and the ReefResilience contract (/api/reefs, /api/predict).
+and the ReefResilience contract (/api/reefs, /api/predict, /api/reefs/{id}/photos for cached
+iNaturalist reef photos from pipeline/06_fetch_reef_photos.py).
 
 uvicorn main:app --reload --port 8000   (run from the backend/ folder)
 
@@ -25,6 +26,7 @@ from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
+PHOTOS_PATH = Path(os.getenv("REEFCAST_PHOTOS", ROOT / "data/processed/reef_photos.json"))
 REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
 # Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
 EMPTY_TILE = base64.b64decode(
@@ -80,6 +82,21 @@ def load_data():
             detail=f"No scored sites at {DATA_PATH}. Run the pipeline (pipeline/04_score_sites.py) first.",
         )
     return json.loads(DATA_PATH.read_text())
+
+
+def load_photos():
+    """Reef photo cache (pipeline/06_fetch_reef_photos.py). Optional: missing file = no photos."""
+    try:
+        mtime = PHOTOS_PATH.stat().st_mtime_ns
+    except FileNotFoundError:
+        return {"photos": {}, "reefs": {}}
+    return _read_photos(str(PHOTOS_PATH), mtime)
+
+
+@lru_cache(maxsize=1)
+def _read_photos(path, _mtime_ns):
+    """Parsed once per (path, mtime): the weekly sync rewrites the file in place."""
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def warm_scorer():
@@ -207,6 +224,24 @@ def to_reef(site):
     }
 
 
+def to_photo(photo_id, record, km):
+    """GET /api/reefs/{id}/photos item."""
+    return {
+        "id": photo_id,
+        "url": record["url"],
+        "largeUrl": record["large_url"],
+        "width": record["width"],
+        "height": record["height"],
+        "attribution": record["attribution"],
+        "license": record["license"],
+        "photographer": record["photographer"],
+        "observationUrl": record["observation_url"],
+        "observedOn": record.get("observed_on"),
+        "taxon": record["taxon"],
+        "distanceKm": km,
+    }
+
+
 def scored_sites():
     return [s for s in load_data()["sites"] if s.get("bleaching_probability") is not None]
 
@@ -304,6 +339,16 @@ def get_explanation(reef_id: str):
         "summary": insight(reef["resilienceProbability"], contributions,
                            site["heat"].get("dhw_max_12w") or 0.0),
     }
+
+
+@app.get("/api/reefs/{reef_id}/photos")
+def get_photos(reef_id: str):
+    """Openly licensed iNaturalist coral photos within 10 km of the reef, in cache order ([] if none)."""
+    find_site(reef_id)
+    data = load_photos()
+    photos = data.get("photos", {})
+    return [to_photo(pid, photos[pid], km)
+            for pid, km in data.get("reefs", {}).get(reef_id, []) if pid in photos]
 
 
 class PredictInput(BaseModel):
