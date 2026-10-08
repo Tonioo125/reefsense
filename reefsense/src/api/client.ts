@@ -9,6 +9,7 @@ import type {
   ReefExplanation,
   ReefNews,
   ReefPhoto,
+  ReefSupport,
   SurveyHistory,
 } from "@/types/reef";
 
@@ -24,6 +25,7 @@ import type {
  *   GET  /api/reefs/{id}/heat-history -> getHeatHistory(id)
  *   GET  /api/reefs/{id}/survey-history -> getSurveyHistory(id)
  *   GET  /api/reefs/{id}/news         -> getReefNews(id)
+ *   GET  /api/reefs/{id}/support      -> getReefSupport(id)
  *   GET  /api/bleaching-history       -> getBleachingHistory()
  *   GET  /api/model                   -> getModelMetrics()
  *   GET  /api/noaa-gap                -> getNoaaGap()
@@ -139,6 +141,11 @@ export function getBleachingHistory(): Promise<BleachingHistory> {
 /** GET /api/reefs/{id}/news: coral news about the reef's region. */
 export function getReefNews(id: string): Promise<ReefNews | null> {
   return httpOrNull<ReefNews>(`/reefs/${encodeURIComponent(id)}/news`);
+}
+
+/** GET /api/reefs/{id}/support: reef conservation organisations near the reef (curated). */
+export function getReefSupport(id: string): Promise<ReefSupport | null> {
+  return httpOrNull<ReefSupport>(`/reefs/${encodeURIComponent(id)}/support`);
 }
 
 /** POST /api/predict: score any location under a given heat-stress scenario. */

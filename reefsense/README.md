@@ -133,6 +133,7 @@ Scroll reveals, the hero parallax, count-ups and the chart and bar animations us
 | `GET /api/reefs/{id}/heat-history` | `getHeatHistory(id)` | `HeatHistory` (404 → `null`) |
 | `GET /api/reefs/{id}/survey-history` | `getSurveyHistory(id)` | `SurveyHistory` (404 → `null`) |
 | `GET /api/reefs/{id}/news` | `getReefNews(id)` | `ReefNews` (404 → `null`) |
+| `GET /api/reefs/{id}/support` | `getReefSupport(id)` | `ReefSupport` (404 → `null`) |
 | `GET /api/bleaching-history` | `getBleachingHistory()` | `BleachingHistory` |
 
 Non-2xx responses other than 404, and an unreachable API, surface as an `ApiError`, which the UI shows with a "Try again" action.
@@ -141,6 +142,7 @@ Non-2xx responses other than 404, and an unreachable API, surface as an `ApiErro
 
 - A GitHub Actions workflow (`.github/workflows/data-sync.yml`) refreshes the data: daily at 22:30 UTC for NOAA Coral Reef Watch heat stress, and weekly on Monday at 00:00 UTC for GCBD, MERMAID coral cover and iNaturalist photos. Details, manual runs and caveats are in [`../pipeline/README.md`](../pipeline/README.md).
 - Community photos come from iNaturalist (`data/processed/reef_photos.json`, served by `GET /api/reefs/{id}/photos`). Only Creative Commons-licensed photos are used; each shows its photographer and licence and links to its observation. The gallery is captioned "Community photos near this site via iNaturalist — not a record of current reef condition."
+- "Support reef conservation", under the reef title, expands to 1-3 organisations working near the reef (`GET /api/reefs/{id}/support`, curated in `data/sites/support_links.json`; most specific of site, region, country, then global). Links open the organisation's own page in a new tab, with the note "Independent organisations working on reef conservation in this region. ReefSense does not receive or handle donations, and funds may not go to this specific site." The control is hidden if the request fails. To add or update an organisation, see [Support links](../README.md#support-links) in the root README.
 - The satellite view uses Esri World Imagery tiles with the attribution Esri requires; review Esri's terms of use before production use. It is always shown, so a reef without photos (or a failed photo request) still has imagery.
 
 ## Notes

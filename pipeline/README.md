@@ -17,6 +17,7 @@ Scripts are numbered in run order (letters are alternatives or follow-ups to the
 | `05_fetch_mermaid.py` | Nearest MERMAID survey hard coral cover within 10 km of each reef (`--radius-km`) | `data/processed/mermaid_sites.json` |
 | `06_fetch_reef_photos.py` | Openly licensed iNaturalist coral photos within 10 km of each reef, from observations with an exact (not obscured) location (`--radius-km`, `--per-reef`, `--only`); served by `GET /api/reefs/{id}/photos` and shown in the ReefSense panel ([`../reefsense/README.md`](../reefsense/README.md)) | `data/processed/reef_photos.json` |
 | `06_validate_model.py` | Stress tests: later years, held-out countries and the cyclone check, against DHW alone (local, not part of the scheduled sync); served by `GET /api/model` | `data/processed/model_validation.json` |
+| `07_check_support_links.py` | Re-checks every donation/support URL in `data/sites/support_links.json`; report only (`--strict` to fail) | (prints only) |
 
 Every fetcher is fail-soft: sites, cells or sources that fail keep their previous data, and a script that gets nothing at all exits 1 without writing.
 
@@ -29,11 +30,11 @@ Tests (offline): `cd pipeline; python -m pytest -q test_data_sync.py`.
 | Job | Cron (UTC) | WIB (UTC+7) | Runs |
 | --- | --- | --- | --- |
 | `daily` | `30 22 * * *` | 05:30 every day | `02_fetch_crw.py --days 180`, `02b_fetch_crw_grid.py --refresh`, then `04_score_sites.py` if the model is available |
-| `weekly` | `0 0 * * 1` | Monday 07:00 | `01d_sync_gcbd.py`, `05_fetch_mermaid.py`, `06_fetch_reef_photos.py` (~55 min) |
+| `weekly` | `0 0 * * 1` | Monday 07:00 | `01d_sync_gcbd.py`, `05_fetch_mermaid.py`, `06_fetch_reef_photos.py` (~55 min), `07_check_support_links.py` (report only) |
 
 Why 22:30 UTC: NOAA CRW publishes the daily 5 km product around 13:30 US Eastern (17:30 UTC in summer, 18:30 UTC in winter), and the CoastWatch ERDDAP mirror the scripts read from picks it up afterwards. 22:30 UTC leaves a 4-5 hour buffer, and the half hour avoids GitHub's top-of-hour load spikes.
 
-Each source step may fail without stopping the others. Every source step has its own `timeout-minutes` (daily: 02 35, 02b 60, 04 15; weekly: 01d 10, 05 MERMAID 15, 06 photos 85; jobs 120), so a hanging server only fails that step and the commit and summary steps still run. Requests also give up on a connection after 15 s. The job summary lists every source's outcome, and a job fails only when all of its sources failed. Commits are made as `github-actions[bot]` (`data: daily NOAA sync YYYY-MM-DD`, `data: weekly sync YYYY-MM-DD`) by `.github/scripts/commit-data.sh`, and only when a file actually changed. The GCBD check rewrites nothing unless the upstream file changed; if only the ETag or date changed but the downloaded file has the same sha256, it refreshes the fingerprint in `gcbd_source.json` and leaves `gcbd_asia.csv` alone.
+Each source step may fail without stopping the others. Every source step has its own `timeout-minutes` (daily: 02 35, 02b 60, 04 15; weekly: 01d 10, 05 MERMAID 15, 06 photos 85, 07 links 5; jobs 120), so a hanging server only fails that step and the commit and summary steps still run. Requests also give up on a connection after 15 s. The job summary lists every source's outcome, and a job fails only when all of its sources failed. Commits are made as `github-actions[bot]` (`data: daily NOAA sync YYYY-MM-DD`, `data: weekly sync YYYY-MM-DD`) by `.github/scripts/commit-data.sh`, and only when a file actually changed. The GCBD check rewrites nothing unless the upstream file changed; if only the ETag or date changed but the downloaded file has the same sha256, it refreshes the fingerprint in `gcbd_source.json` and leaves `gcbd_asia.csv` alone.
 
 Things to know:
 
