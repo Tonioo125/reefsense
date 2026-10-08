@@ -24,7 +24,7 @@ export default function NoaaGapBanner({ summary, active, onToggle }: NoaaGapBann
         title={`${summary.definition} For ${summary.nonHeatTopDriverCount} of these reefs the model's largest driver is a site attribute rather than recent heat.`}
       >
         <span className="font-semibold tabular-nums">{summary.count.toLocaleString()}</span> at-risk reefs
-        NOAA&apos;s alerts missed
+        with no NOAA heat alert
         <span className="sr-only">
           : elevated predicted bleaching risk where NOAA&apos;s alerts stayed below Alert Level 1 for 12 weeks
         </span>

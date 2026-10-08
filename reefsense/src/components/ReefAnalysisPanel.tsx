@@ -1,5 +1,5 @@
 import { useState, type Ref } from "react";
-import { AlertCircle, FlaskConical, MessageCircle, X } from "lucide-react";
+import { AlertCircle, Check, FlaskConical, MessageCircle, Share2, X } from "lucide-react";
 import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
 import HeatScenario from "@/components/HeatScenario";
@@ -92,6 +92,44 @@ function ViewSwitch({ view, onChange }: { view: PanelView; onChange: (view: Pane
   );
 }
 
+/** Shares a link that opens straight to this reef: the system share sheet on phones, else the clipboard. */
+function ShareButton({ reef }: { reef: Reef }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("reef", reef.id);
+    const link = url.toString();
+    try {
+      if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+        await navigator.share({ title: `${reef.name} on ReefSense`, url: link });
+        return;
+      }
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Share sheet dismissed, or clipboard blocked: nothing to undo.
+    }
+  };
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={share}
+      aria-label={copied ? "Link copied" : `Share a link to ${reef.name}`}
+      title={copied ? "Link copied" : "Share this reef"}
+      className="relative shrink-0 rounded-full text-muted-strong hover:text-foreground"
+    >
+      {copied ? <Check className="h-4 w-4 text-brand" /> : <Share2 className="h-4 w-4" />}
+      <span role="status" className="sr-only">
+        {copied ? "Link copied" : ""}
+      </span>
+    </Button>
+  );
+}
+
 function Divider() {
   return <div className="my-6 h-px bg-border" />;
 }
@@ -168,6 +206,7 @@ export default function ReefAnalysisPanel({
         <div className="flex-1">
           <ViewSwitch view={view} onChange={changeView} />
         </div>
+        <ShareButton reef={reef} />
         <Button
           ref={closeButtonRef}
           variant="ghost"

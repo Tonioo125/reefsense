@@ -11,3 +11,4 @@ data/processed/*.joblib
 *:Zone.Identifier
 # Derived from UNEP-WCMC data, which may not be redistributed (see pipeline/05_reef_area_tiles.py)
 data/processed/reef_area_tiles/
+my-video

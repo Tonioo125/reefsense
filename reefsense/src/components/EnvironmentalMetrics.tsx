@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Flame, Ruler, Sprout, Thermometer, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Term from "@/components/Term";
 import { coralCoverNote, levelTone } from "@/lib/reef";
 import type { EnvironmentalMetrics as Metrics, QualitativeLevel } from "@/types/reef";
 
@@ -32,7 +33,7 @@ function Value({ children, note }: { children: ReactNode; note?: string }) {
   );
 }
 
-function Row({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
+function Row({ icon: Icon, label, children }: { icon: LucideIcon; label: ReactNode; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <dt className="flex items-center gap-2.5 text-sm text-muted-foreground">
@@ -63,20 +64,27 @@ export default function EnvironmentalMetrics({ metrics }: EnvironmentalMetricsPr
         </Value>
       </Row>
       {metrics.dhwMax12w != null && (
-        <Row icon={TrendingUp} label="Peak heat stress, 12 weeks">
+        <Row
+          icon={TrendingUp}
+          label={
+            <span>
+              Peak heat stress (<Term term="dhw">DHW</Term>), 12 weeks
+            </span>
+          }
+        >
           <Value note={metrics.dhwNow != null ? `${fmt(metrics.dhwNow)} DHW today` : undefined}>
             {fmt(metrics.dhwMax12w)} DHW
           </Value>
         </Row>
       )}
-      <Row icon={Flame} label="Heat stress">
+      <Row icon={Flame} label={<Term term="noaa">NOAA heat alert</Term>}>
         {metrics.heatStress ? (
           <LevelPill level={metrics.heatStress} note={metrics.alertLevel} />
         ) : (
           <Value>n/a</Value>
         )}
       </Row>
-      <Row icon={Sprout} label="Hard coral cover">
+      <Row icon={Sprout} label={<Term term="coralCover">Hard coral cover</Term>}>
         <Value note={coralCoverNote(metrics)}>
           {metrics.coralCover == null ? "n/a" : `${Math.round(metrics.coralCover)}%`}
         </Value>

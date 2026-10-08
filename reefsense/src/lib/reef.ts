@@ -47,15 +47,15 @@ export function resilienceLabel(category: ResilienceCategory): string {
     case "High":
       return "High predicted resilience";
     case "Medium":
-      return "Moderate predicted resilience";
+      return "Medium predicted resilience";
     case "Low":
-      return "Lower predicted resilience";
+      return "Low predicted resilience";
   }
 }
 
 /** Heading for the model explanation, hedged to the predicted band. */
 export function explanationHeading(category: ResilienceCategory): string {
-  const phrase = { High: "high", Medium: "moderate", Low: "lower" }[category];
+  const phrase = { High: "high", Medium: "medium", Low: "low" }[category];
   return `Why does the model predict ${phrase} resilience?`;
 }
 
@@ -64,17 +64,17 @@ export function insightCopy(category: ResilienceCategory): { title: string; body
   switch (category) {
     case "High":
       return {
-        title: "High resilience potential",
+        title: "Conditions here favour this reef",
         body: "This reef shows environmental characteristics associated with stronger climate resilience in the model.",
       };
     case "Medium":
       return {
-        title: "Moderate resilience potential",
+        title: "A mix of helpful and harmful conditions",
         body: "This reef combines favourable and limiting environmental characteristics; the model estimates an intermediate climate resilience likelihood.",
       };
     case "Low":
       return {
-        title: "Limited resilience potential",
+        title: "Conditions here work against this reef",
         body: "This reef shows environmental characteristics the model associates with a lower likelihood of climate resilience.",
       };
   }

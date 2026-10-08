@@ -94,10 +94,6 @@ export default {
           from: { transform: "translateY(100%)" },
           to: { transform: "translateY(0)" },
         },
-        "hero-in": {
-          from: { opacity: "0", transform: "translateY(16px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
         // The frame opens like an aperture while the photo settles from depth.
         "frame-open": {
           from: { clipPath: "inset(7% 9% 7% 9% round 48px)" },
@@ -106,11 +102,6 @@ export default {
         "hero-settle": {
           from: { transform: "scale(1.22)", filter: "blur(10px) saturate(0.6) brightness(0.7)" },
           to: { transform: "scale(1)", filter: "blur(0) saturate(1) brightness(1)" },
-        },
-        // Slow aerial drift once settled.
-        drift: {
-          "0%": { transform: "scale(1.04) translate3d(-1%, 0.5%, 0)" },
-          "100%": { transform: "scale(1.1) translate3d(1.5%, -1%, 0)" },
         },
         "word-rise": {
           from: { transform: "translate3d(0, 115%, 0) rotate(6deg)", opacity: "0" },
@@ -124,40 +115,21 @@ export default {
           from: { opacity: "0", transform: "translate3d(0, -14px, 0)" },
           to: { opacity: "1", transform: "translate3d(0, 0, 0)" },
         },
-        caustic: {
-          from: { transform: "translate3d(0, 0, 0)" },
-          to: { transform: "translate3d(calc(var(--tile) * -1), calc(var(--tile) * -1), 0)" },
-        },
-        "caustic-reverse": {
-          from: { transform: "translate3d(calc(var(--tile) * -1), 0, 0)" },
-          to: { transform: "translate3d(0, calc(var(--tile) * -1), 0)" },
-        },
         sheen: {
           from: { transform: "translateX(-120%) skewX(-18deg)" },
           to: { transform: "translateX(220%) skewX(-18deg)" },
-        },
-        // A drop of light falling down the scroll cue.
-        sink: {
-          "0%": { transform: "translateY(-100%)", opacity: "0" },
-          "30%": { opacity: "1" },
-          "100%": { transform: "translateY(260%)", opacity: "0" },
         },
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out both",
         "slide-up": "slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
         "sheet-up": "sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "hero-in": "hero-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both",
         "frame-open": "frame-open 1.6s cubic-bezier(0.16, 1, 0.3, 1) backwards",
         "hero-settle": "hero-settle 2.8s cubic-bezier(0.16, 1, 0.3, 1) backwards",
-        drift: "drift 38s ease-in-out 2.8s infinite alternate both",
         "word-rise": "word-rise 1.15s cubic-bezier(0.16, 1, 0.3, 1) backwards",
         "blur-in": "blur-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) backwards",
         "drop-in": "drop-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards",
-        caustic: "caustic 48s linear infinite",
-        "caustic-reverse": "caustic-reverse 64s linear infinite",
         sheen: "sheen 1.4s cubic-bezier(0.16, 1, 0.3, 1) both",
-        sink: "sink 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite",
       },
     },
   },

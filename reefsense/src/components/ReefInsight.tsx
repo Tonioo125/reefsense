@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { environmentalSummary, insightCopy, topPositiveFactors } from "@/lib/reef";
+import { environmentalSummary, formatDay, insightCopy, topPositiveFactors } from "@/lib/reef";
 import type { Reef, ReefExplanation } from "@/types/reef";
 
 interface ReefInsightProps {
@@ -10,7 +10,7 @@ interface ReefInsightProps {
 
 function Label({ children }: { children: string }) {
   return (
-    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
+    <p className="text-xs font-semibold text-muted-strong">
       {children}
     </p>
   );
@@ -23,7 +23,7 @@ export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
 
   return (
     <section>
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-brand">
         <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
         Model insight
       </p>
@@ -39,7 +39,7 @@ export default function ReefInsight({ reef, explanation }: ReefInsightProps) {
               {reef.asOf && (
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted-strong">Satellite heat stress as of</dt>
-                  <dd className="font-medium tabular-nums text-foreground">{reef.asOf}</dd>
+                  <dd className="font-medium tabular-nums text-foreground">{formatDay(reef.asOf)}</dd>
                 </div>
               )}
               {reef.nearestSurveyKm != null && (

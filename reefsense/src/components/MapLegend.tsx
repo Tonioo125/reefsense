@@ -41,7 +41,7 @@ export default function MapLegend({
     <div
       className={cn(
         "absolute bottom-6 left-3 z-[1000] rounded-xl border border-border bg-card/95 shadow-float sm:left-4",
-        expanded ? "w-[13.5rem] p-2.5" : "p-1",
+        expanded ? "w-[12rem] p-2.5 sm:w-[13.5rem]" : "p-1",
       )}
     >
       <button
@@ -109,7 +109,7 @@ export default function MapLegend({
         </>
       ) : (
         <>
-          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-strong">
+          <p className="mb-2 text-xs font-semibold leading-snug text-foreground">
             Hard coral cover
           </p>
           <div aria-hidden="true" className="h-2.5 w-full rounded-full" style={{ background: CORAL_COVER_GRADIENT }} />

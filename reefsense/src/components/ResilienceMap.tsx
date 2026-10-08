@@ -23,10 +23,10 @@ interface ResilienceMapProps {
   history?: { points: HistoryPoint[]; countries: string[]; thresholdPct: number } | null;
 }
 
-/** Opening view: the Indo-Pacific reefs, Maldives to Japan. */
+/** Opening view: Indonesia, the focus of the project (Sumatra to Papua). */
 const INITIAL_BOUNDS: [[number, number], [number, number]] = [
-  [-11, 72],
-  [36, 146],
+  [-11, 94.5],
+  [6.5, 141.5],
 ];
 
 const RADIUS = 7;
@@ -76,6 +76,18 @@ function WheelZoomOnClick() {
   return null;
 }
 
+/** Keeps Leaflet's size in step with its container (fullscreen, the panel opening below on tablets). */
+function ResizeWatch() {
+  const map = useMap();
+  useEffect(() => {
+    if (!("ResizeObserver" in window)) return;
+    const ro = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    ro.observe(map.getContainer());
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 /** Click on open water: a model scenario for that point at an assumed heat stress. */
 function ProbeLayer() {
   const [probe, setProbe] = useState<{ lat: number; lng: number } | null>(null);
@@ -91,10 +103,13 @@ function ProbeLayer() {
       position={[probe.lat, probe.lng]}
       minWidth={248}
       maxWidth={260}
+      // Pan the popup clear of the filter toolbar at the top and the legend / replay row at the bottom.
+      autoPanPaddingTopLeft={[16, 132]}
+      autoPanPaddingBottomRight={[16, 64]}
       eventHandlers={{ remove: () => setProbe(null) }}
     >
       <div className="w-[15rem] font-sans">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-brand">Scenario at this point</p>
+        <p className="text-xs font-semibold text-brand">Scenario at this point</p>
         <p className="mb-3 mt-0.5 text-[11px] tabular-nums text-muted-strong">
           {probe.lat.toFixed(3)}°, {probe.lng.toFixed(3)}°
         </p>
@@ -296,12 +311,15 @@ export default function ResilienceMap({
       aria-label={
         colorBy === "coral"
           ? "Map of reef sites by surveyed hard coral cover"
-          : "Global map of reef sites by predicted climate resilience"
+          : "Map of reef sites by predicted climate resilience"
       }
+      data-map-root=""
       className="h-full w-full"
     >
       <MapContainer
         bounds={INITIAL_BOUNDS}
+        // Half-step zoom lets the opening view fit Indonesia snugly instead of rounding out to Asia.
+        zoomSnap={0.5}
         minZoom={2}
         maxZoom={11}
         worldCopyJump
@@ -313,6 +331,7 @@ export default function ResilienceMap({
         className="h-full w-full"
       >
         <WheelZoomOnClick />
+        <ResizeWatch />
         {/* Esri World Ocean: seafloor depth shading for the reef story; labels on a separate layer
             above the reef extent. Keyless, like the satellite view in ReefImagery. */}
         <TileLayer

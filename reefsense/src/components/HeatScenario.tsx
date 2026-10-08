@@ -88,7 +88,7 @@ export default function HeatScenario({
     <section aria-label="Heat stress scenario">
       {!compact && (
         <>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-brand">Scenario</p>
+          <p className="text-xs font-semibold text-brand">Scenario</p>
           <h3 className="mt-1 text-[15px] font-semibold text-foreground">What if heat stress changes?</h3>
         </>
       )}
@@ -154,7 +154,7 @@ export default function HeatScenario({
                   <Loader2 className="h-3 w-3 text-muted-foreground motion-safe:animate-spin" aria-hidden="true" />
                 )}
               </p>
-              <p className="truncate text-[11px] text-muted-strong">
+              <p className="text-[11px] leading-snug text-muted-strong">
                 {resilienceLabel(result.category)} · {formatPercent(result.bleachingProbability)} bleaching risk
               </p>
             </div>

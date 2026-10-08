@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { ReefFloor } from "@/components/SeaLife";
 import Explore from "@/pages/Explore";
 import { scrollToSection } from "@/lib/scroll";
 
-const SECTIONS = ["top", "explore", "insights", "about"];
+const SECTIONS = ["top", "explore", "restore", "insights", "act", "about"];
 
 export default function App() {
   const [active, setActive] = useState("top");
@@ -32,6 +33,7 @@ export default function App() {
       <main>
         <Explore />
       </main>
+      <ReefFloor />
       <Footer />
     </div>
   );

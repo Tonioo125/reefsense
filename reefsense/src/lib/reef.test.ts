@@ -55,17 +55,17 @@ describe("category copy", () => {
 
   it("uses the spec heading for high resilience and hedged wording otherwise", () => {
     expect(explanationHeading("High")).toBe("Why does the model predict high resilience?");
-    expect(explanationHeading("Medium")).toBe("Why does the model predict moderate resilience?");
-    expect(explanationHeading("Low")).toBe("Why does the model predict lower resilience?");
+    expect(explanationHeading("Medium")).toBe("Why does the model predict medium resilience?");
+    expect(explanationHeading("Low")).toBe("Why does the model predict low resilience?");
   });
 
   it("provides insight titles and hedged bodies", () => {
     expect(insightCopy("High")).toEqual({
-      title: "High resilience potential",
+      title: "Conditions here favour this reef",
       body: "This reef shows environmental characteristics associated with stronger climate resilience in the model.",
     });
-    expect(insightCopy("Medium").title).toBe("Moderate resilience potential");
-    expect(insightCopy("Low").title).toBe("Limited resilience potential");
+    expect(insightCopy("Medium").title).toBe("A mix of helpful and harmful conditions");
+    expect(insightCopy("Low").title).toBe("Conditions here work against this reef");
   });
 
 });

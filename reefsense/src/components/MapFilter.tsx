@@ -10,7 +10,7 @@ interface MapFilterProps {
 
 const OPTIONS: ReefFilter[] = ["All", "High", "Medium", "Low"];
 
-const fullLabel = (f: ReefFilter) => (f === "All" ? "All" : `${f} resilience`);
+const fullLabel = (f: ReefFilter) => (f === "All" ? "All reefs" : `${f} predicted resilience`);
 
 /** Segmented control to filter visible markers by predicted resilience category. */
 export default function MapFilter({ value, onChange, counts }: MapFilterProps) {
@@ -45,7 +45,6 @@ export default function MapFilter({ value, onChange, counts }: MapFilterProps) {
             )}
             <span aria-hidden="true">
               {o}
-              {o !== "All" && <span className="hidden sm:inline"> resilience</span>}
             </span>
             <span
               aria-hidden="true"

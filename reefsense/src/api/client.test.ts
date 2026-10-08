@@ -126,6 +126,22 @@ describe("endpoints", () => {
     ]);
   });
 
+  it("attaches the stress tests with plain labels", async () => {
+    useHttp(() =>
+      jsonResponse({
+        metrics: { model: { roc_auc: 0.75, pr_auc: 0.56 }, features: [] },
+        validation: {
+          time_splits: [{ split: "Train on surveys to 2015, test on the 2016 global bleaching event", n: 1159, model_roc_auc: 0.771, dhw_roc_auc: 0.726 }],
+          country_holdouts: [{ country: "Indonesia", n: 937, model_roc_auc: 0.744, dhw_roc_auc: 0.68 }],
+        },
+      }),
+    );
+    expect((await getModelMetrics())?.stressTests).toEqual([
+      { label: "The 2016 global bleaching event, unseen", surveys: 1159, modelAuc: 0.771, heatAuc: 0.726 },
+      { label: "Indonesia, never seen in training", surveys: 937, modelAuc: 0.744, heatAuc: 0.68 },
+    ]);
+  });
+
   it("returns model metrics only when the API reports a trained model", async () => {
     useHttp(() => jsonResponse({ metrics: { model: { roc_auc: 0.75, pr_auc: 0.56 }, features: [] } }));
     expect((await getModelMetrics())?.model.roc_auc).toBe(0.75);

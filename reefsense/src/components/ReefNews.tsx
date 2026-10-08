@@ -17,7 +17,7 @@ export default function ReefNews({ reefId }: { reefId: string }) {
 
   return (
     <section aria-label="Coral news for this region">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-brand">In the news</p>
+      <p className="text-xs font-semibold text-brand">In the news</p>
       <h3 className="mt-1 text-[15px] font-semibold text-foreground">Coral stories from this region</h3>
 
       {status === "loading" ? (

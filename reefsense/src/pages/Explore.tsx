@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
-import { History, Loader2, MapPin } from "lucide-react";
+import { ArrowRight, History, Loader2, MapPin, Maximize2, Minimize2 } from "lucide-react";
 import { getBleachingHistory, getModelMetrics, getNoaaGap, listReefs } from "@/api/client";
 import AboutSection from "@/components/AboutSection";
+import ActSection from "@/components/ActSection";
 import Hero from "@/components/Hero";
 import HistoryReplay from "@/components/HistoryReplay";
 import HistoryYearPanel from "@/components/HistoryYearPanel";
@@ -12,13 +13,17 @@ import MapLegend from "@/components/MapLegend";
 import NoaaGapBanner from "@/components/NoaaGapBanner";
 import ReefAnalysisPanel from "@/components/ReefAnalysisPanel";
 import ResilienceMap from "@/components/ResilienceMap";
+import RestoreSection from "@/components/RestoreSection";
 import Reveal from "@/components/Reveal";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReefDetail } from "@/hooks/useReefDetail";
 import { useReefPhotos } from "@/hooks/useReefPhotos";
 import type { ReefPhotos } from "@/hooks/useReefPhotos";
+import { CATEGORY_COLORS, formatPercent } from "@/lib/reef";
 import { scrollToSection } from "@/lib/scroll";
+import { suggestedReefs } from "@/lib/suggest";
+import type { SuggestedReef } from "@/lib/suggest";
 import { cn } from "@/lib/utils";
 import type {
   BleachingHistory,
@@ -31,23 +36,69 @@ import type {
   ReefFilter,
 } from "@/types/reef";
 
-function PanelEmptyState() {
+function PanelEmptyState({
+  suggestions,
+  onPick,
+}: {
+  suggestions: SuggestedReef[];
+  onPick: (id: string) => void;
+}) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center lg:py-16">
-      {/* A slow sonar ping: the panel is listening for a selection. */}
-      <div className="relative flex h-14 w-14 items-center justify-center">
-        <span aria-hidden="true" className="absolute inset-0 rounded-full border border-primary/40 motion-safe:animate-[ping_2.8s_cubic-bezier(0,0,0.2,1)_infinite]" />
-        <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-border bg-secondary">
-          <MapPin className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
-        </span>
+    <div className="flex h-full flex-col justify-center px-6 py-10 lg:py-12">
+      <div className="flex items-center gap-3">
+        {/* A slow sonar ping: the panel is listening for a selection. */}
+        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+          <span aria-hidden="true" className="absolute inset-0 rounded-full border border-primary/40 motion-safe:animate-[ping_2.8s_cubic-bezier(0,0,0.2,1)_infinite]" />
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-secondary">
+            <MapPin className="h-[18px] w-[18px] text-primary" strokeWidth={1.75} aria-hidden="true" />
+          </span>
+        </div>
+        <div>
+          <p className="text-[15px] font-semibold text-foreground">Select a reef</p>
+          <p className="text-sm leading-snug text-muted-foreground">
+            Choose a marker on the map, or start with one of these.
+          </p>
+        </div>
       </div>
-      <p className="mt-4 text-sm font-medium text-foreground">Select a reef</p>
-      <p className="mt-1.5 max-w-[16rem] text-sm leading-relaxed text-muted-foreground">
-        Choose a marker on the map to view its predicted climate resilience and the model's
-        explanation.
-      </p>
-      <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-muted-strong">
-        Or click anywhere on the water to test how a location responds to different heat stress.
+
+      {suggestions.length > 0 && (
+        <ul className="mt-6 space-y-2">
+          {suggestions.map(({ reef, reason }) => (
+            <li key={reef.id}>
+              <button
+                type="button"
+                onClick={() => onPick(reef.id)}
+                className="group flex w-full items-center gap-3 rounded-2xl border border-border bg-background/60 px-4 py-3 text-left transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-brand/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
+                  style={{ background: CATEGORY_COLORS[reef.category].base }}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{reef.name}</span>
+                  <span className="block text-xs leading-snug text-muted-strong">
+                    {reason} · {reef.region}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className="block font-display text-lg font-medium leading-none tabular-nums text-foreground">
+                    {formatPercent(reef.resilienceProbability)}
+                  </span>
+                  <span className="text-[10px] text-muted-strong">resilience</span>
+                </span>
+                <ArrowRight
+                  className="h-4 w-4 shrink-0 text-muted-strong transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-brand"
+                  aria-hidden="true"
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-6 text-xs leading-relaxed text-muted-strong">
+        Or click anywhere on the water to test how a place would cope with more or less ocean heat.
       </p>
     </div>
   );
@@ -153,6 +204,32 @@ export default function Explore() {
 
   const isMdUp = useMediaQuery("(min-width: 768px)");
   const isLgUp = useMediaQuery("(min-width: 1024px)");
+
+  // Fullscreen map: the browser's own fullscreen where the panel lives inside the frame (tablet and
+  // up); on phones a fixed full-viewport layer, so the reef bottom sheet can still open over it.
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [placeholder, setPlaceholder] = useState<number | null>(null);
+  const toggleFullscreen = useCallback(() => {
+    const frame = frameRef.current;
+    if (!fullscreen) {
+      setPlaceholder(frame?.offsetHeight ?? null);
+      setFullscreen(true);
+      if (isMdUp && frame?.requestFullscreen) frame.requestFullscreen().catch(() => {});
+    } else {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      setFullscreen(false);
+    }
+  }, [fullscreen, isMdUp]);
+
+  // Leaving the browser's fullscreen (Esc, F11) leaves ours too.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
   const headingId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -227,6 +304,24 @@ export default function Explore() {
   const photos = useReefPhotos(selectedId);
   const clearSelection = useCallback(() => setSelectedId(null), []);
 
+  // While fullscreen: the page behind stays put, and Escape steps out (after closing an open reef).
+  useEffect(() => {
+    if (!fullscreen) {
+      setPlaceholder(null);
+      return;
+    }
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !selectedId) setFullscreen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [fullscreen, selectedId]);
+
   // Escape closes the analysis panel / bottom sheet.
   useEffect(() => {
     if (!selectedId) return;
@@ -251,6 +346,47 @@ export default function Explore() {
     () => (filter === "All" ? reefs : reefs.filter((r) => r.category === filter)),
     [reefs, filter],
   );
+
+  const suggestions = useMemo(() => suggestedReefs(reefs, noaaGap?.reefIds), [reefs, noaaGap]);
+  // A suggestion opens even when the current filter hides its band.
+  const pickSuggestion = useCallback((id: string) => {
+    setFilter("All");
+    setSelectedId(id);
+  }, []);
+  // From elsewhere on the page (the restoration ranking): open the reef and bring the map into view.
+  const openReef = useCallback(
+    (id: string) => {
+      pickSuggestion(id);
+      scrollToSection("explore");
+    },
+    [pickSuggestion],
+  );
+
+  // Shareable links: the open reef lives in the URL (?reef=ID), and a link opens straight to it.
+  const linkedReef = useRef<string | null>(
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("reef"),
+  );
+  useEffect(() => {
+    const id = linkedReef.current;
+    if (!id || reefs.length === 0) return;
+    linkedReef.current = null;
+    if (reefs.some((r) => r.id === id)) {
+      setSelectedId(id);
+      // Wait a frame for the page to lay out, then bring the map into view.
+      requestAnimationFrame(() => scrollToSection("explore"));
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reef");
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, [reefs]);
+  useEffect(() => {
+    if (linkedReef.current) return; // the link has not been applied yet
+    const url = new URL(window.location.href);
+    if (selectedId) url.searchParams.set("reef", selectedId);
+    else url.searchParams.delete("reef");
+    window.history.replaceState(window.history.state, "", url);
+  }, [selectedId]);
 
   // Show the list record immediately; swap in the detail response once loaded.
   const listReef = reefs.find((r) => r.id === selectedId) ?? null;
@@ -295,14 +431,35 @@ export default function Explore() {
 
   return (
     <>
-      <Hero onExplore={() => scrollToSection("explore")} />
+      <Hero
+        onExplore={() => scrollToSection("explore")}
+        alertRecall={metrics?.baseline_dhw?.dhw_ge_4?.recall ?? null}
+        surveys={metrics?.n_rows ?? null}
+        reefCount={loading || error ? null : reefs.length}
+      />
 
-      <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-24 px-2 pt-3 sm:px-3">
-        <div className="relative isolate flex flex-col overflow-clip rounded-[28px] border border-border bg-card shadow-float sm:rounded-[32px] lg:h-[calc(100svh-7rem)] lg:min-h-[600px] lg:flex-row">
+      <section
+        id="explore"
+        aria-label="Explore the resilience map"
+        className="scroll-mt-24 px-2 pt-3 sm:px-3"
+        // Hold the frame's place in the page while it is lifted out to fullscreen.
+        style={placeholder ? { minHeight: placeholder + 12 } : undefined}
+      >
+        <div
+          ref={frameRef}
+          className={cn(
+            "relative isolate flex flex-col overflow-clip rounded-[28px] border border-border bg-card shadow-float sm:rounded-[32px] lg:h-[calc(100svh-7rem)] lg:min-h-[600px] lg:flex-row",
+            fullscreen &&
+              "fixed inset-0 z-[54] h-[100dvh] rounded-none border-0 shadow-none max-lg:overflow-y-auto sm:rounded-none lg:h-[100dvh] lg:min-h-0",
+          )}
+        >
           {/* Opacity-only reveals here: a transformed ancestor would break fixed positioning. */}
           <Reveal
             variant="fade-in"
-            className="relative h-[56vh] min-h-[380px] w-full bg-background md:h-[66vh] md:min-h-[540px] lg:h-full lg:min-h-0 lg:flex-1"
+            className={cn(
+              "relative h-[56vh] min-h-[380px] w-full bg-background md:h-[66vh] md:min-h-[540px] lg:h-full lg:min-h-0 lg:flex-1",
+              fullscreen && "max-md:h-[100dvh] max-md:min-h-0",
+            )}
           >
             <ResilienceMap
               reefs={visibleReefs}
@@ -325,6 +482,24 @@ export default function Explore() {
               />
             )}
 
+            {!loading && !error && (
+              <button
+                type="button"
+                data-map-toolbar=""
+                onClick={toggleFullscreen}
+                aria-pressed={fullscreen}
+                aria-label={fullscreen ? "Exit fullscreen map" : "Show the map fullscreen"}
+                title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen map"}
+                className="absolute right-3 top-3 z-[1000] flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card/95 text-foreground shadow-float transition-[background-color,opacity] duration-300 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:right-4 sm:top-4"
+              >
+                {fullscreen ? (
+                  <Minimize2 className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            )}
+
             {!loading && !error && !replaying && (
               <>
                 <button
@@ -343,7 +518,7 @@ export default function Explore() {
                   {historyStatus === "error" && <span className="text-muted-strong">(could not load)</span>}
                 </button>
                 {/* One toolbar row: the filter, then the NOAA-gap toggle; it wraps rather than overlapping. */}
-                <div className="pointer-events-none absolute inset-x-3 top-3 z-[1000] flex flex-wrap items-start gap-2 sm:inset-x-4 sm:top-4 sm:pl-11 [&>*]:pointer-events-auto">
+                <div data-map-toolbar="" className="pointer-events-none absolute inset-x-3 top-3 z-[1000] flex flex-wrap items-start gap-2 pr-11 transition-opacity duration-300 sm:inset-x-4 sm:top-4 sm:pl-11 sm:pr-12 [&>*]:pointer-events-auto">
                   <MapFilter value={filter} onChange={handleFilterChange} counts={counts} />
                   {noaaGap && (
                     <NoaaGapBanner
@@ -412,7 +587,7 @@ export default function Explore() {
                 ) : panelReef ? (
                   renderPanel(panelReef, detail.explanation, photos, isLgUp ? "stacked" : "wide")
                 ) : (
-                  <PanelEmptyState />
+                  <PanelEmptyState suggestions={suggestions} onPick={pickSuggestion} />
                 )}
               </div>
             </Reveal>
@@ -437,7 +612,9 @@ export default function Explore() {
         )}
       </section>
 
+      <RestoreSection reefs={reefs} onOpen={openReef} />
       <InsightsSection reefs={reefs} metrics={metrics} />
+      <ActSection />
       <AboutSection />
     </>
   );

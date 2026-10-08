@@ -11,7 +11,7 @@ export default function HistoryYearPanel({ data, source }: { data: HistoryYear |
 
   return (
     <article className="p-6" aria-label={`Observed bleaching in ${data.year}`}>
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-brand">
         <History className="h-3.5 w-3.5" aria-hidden="true" />
         Bleaching history
       </p>
@@ -44,7 +44,7 @@ export default function HistoryYearPanel({ data, source }: { data: HistoryYear |
 
       {data.topCountries.length > 0 && (
         <div className="mt-6">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">Most surveyed that year</p>
+          <p className="text-xs font-semibold text-muted-strong">Most surveyed that year</p>
           <ul className="mt-2 divide-y divide-border">
             {data.topCountries.map((c) => (
               <li key={c.country} className="flex items-baseline justify-between gap-3 py-1.5 text-sm">

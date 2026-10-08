@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import Term from "@/components/Term";
 import { getHeatHistory } from "@/api/client";
 import { useReefResource } from "@/hooks/useReefResource";
 import { PALETTE, RESILIENCE } from "@/lib/palette";
@@ -36,8 +37,10 @@ export default function HeatTimeline({ reefId }: { reefId: string }) {
 
   return (
     <section aria-label="Heat stress timeline">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-brand">Satellite record</p>
-      <h3 className="mt-1 text-[15px] font-semibold text-foreground">Heat stress, last 12 weeks</h3>
+      <p className="text-xs font-semibold text-brand">Satellite record</p>
+      <h3 className="mt-1 text-[15px] font-semibold text-foreground">
+        Heat stress (<Term term="dhw">DHW</Term>), last 12 weeks
+      </h3>
 
       {status === "loading" ? (
         <div aria-hidden="true" className="mt-3 h-36 rounded-md bg-muted motion-safe:animate-pulse" />

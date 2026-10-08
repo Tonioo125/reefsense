@@ -9,6 +9,7 @@ import type {
   ReefExplanation,
   ReefNews,
   ReefPhoto,
+  StressTest,
   ReefSupport,
   SurveyHistory,
 } from "@/types/reef";
@@ -158,9 +159,34 @@ export function predict(input: PredictRequest): Promise<PredictResponse> {
 }
 
 /** GET /api/model: cross-validated performance of the served model. */
+interface RawValidation {
+  time_splits?: { split: string; n: number; model_roc_auc: number; dhw_roc_auc: number }[];
+  country_holdouts?: { country: string; n: number; model_roc_auc: number; dhw_roc_auc: number }[];
+}
+
+/** Plain labels for the stress tests, in the order they read best. */
+function stressTests(v: RawValidation | null | undefined): StressTest[] {
+  if (!v) return [];
+  const time = (v.time_splits ?? []).map((t) => ({
+    label: t.split.includes("2016") ? "The 2016 global bleaching event, unseen" : "Later years (2013–2020), unseen",
+    surveys: t.n,
+    modelAuc: t.model_roc_auc,
+    heatAuc: t.dhw_roc_auc,
+  }));
+  const places = (v.country_holdouts ?? []).map((c) => ({
+    label: `${c.country}, never seen in training`,
+    surveys: c.n,
+    modelAuc: c.model_roc_auc,
+    heatAuc: c.dhw_roc_auc,
+  }));
+  return [...time, ...places];
+}
+
 export async function getModelMetrics(): Promise<ModelMetrics | null> {
-  const { metrics } = await http<{ metrics: ModelMetrics }>("/model");
-  return metrics?.model ? metrics : null;
+  const { metrics, validation } = await http<{ metrics: ModelMetrics; validation?: RawValidation | null }>(
+    "/model",
+  );
+  return metrics?.model ? { ...metrics, stressTests: stressTests(validation) } : null;
 }
 
 /** GET /api/noaa-gap: reefs at elevated predicted risk while NOAA's current alert is below Warning. */

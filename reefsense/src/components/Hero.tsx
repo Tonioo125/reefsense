@@ -1,18 +1,27 @@
 import { Fragment, useRef } from "react";
 import type { CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
+import { Bubbles, FishSchool, LiveLayer, SunRays } from "@/components/SeaLife";
 import { useScrollProgress } from "@/hooks/useScroll";
 
 interface HeroProps {
   onExplore: () => void;
+  /** Share of recorded bleaching events where heat reached NOAA's alert level (4 DHW); null while loading. */
+  alertRecall: number | null;
+  /** Dive surveys behind that figure. */
+  surveys: number | null;
+  reefCount: number | null;
 }
 
 // Spec copy, kept whole; the second clause is set in the italic serif.
-const HEADLINE = "Understanding coral resilience in a changing climate.";
+const HEADLINE = "Most coral bleaching starts before the alarm sounds.";
 const [HEADLINE_LEAD, HEADLINE_TAIL] = (() => {
-  const i = HEADLINE.indexOf(" in a ");
+  const i = HEADLINE.indexOf(" before ");
   return [HEADLINE.slice(0, i), HEADLINE.slice(i + 1)];
 })();
+
+/** "about 1 in 4" for a share like 0.26. */
+const oneIn = (share: number) => `about 1 in ${Math.max(2, Math.round(1 / share))}`;
 
 const PHOTO_SRCSET = [960, 1600, 2400]
   .map((w) => `/hero/raja-ampat-reef-${w}.webp ${w}w`)
@@ -69,7 +78,7 @@ const DIVE = {
   },
 } satisfies Record<string, CSSProperties>;
 
-export default function Hero({ onExplore }: HeroProps) {
+export default function Hero({ onExplore, alertRecall, surveys, reefCount }: HeroProps) {
   const sectionRef = useRef<HTMLElement>(null);
   useScrollProgress(sectionRef, "--dive");
 
@@ -94,10 +103,25 @@ export default function Hero({ onExplore }: HeroProps) {
               className="h-full w-full object-cover object-[50%_58%] motion-safe:animate-hero-settle"
             />
           </div>
+          {/* Sunlight slanting through the water, under the surface wash. */}
+          <LiveLayer className="pointer-events-none absolute inset-0 -z-[15] overflow-hidden">
+            <SunRays />
+          </LiveLayer>
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(243_248_251/0.94)_0%,rgb(243_248_251/0.86)_34%,rgb(243_248_251/0.4)_50%,rgb(243_248_251/0)_62%)]"
           />
+          {/* A pool of light behind the copy so it reads over the coral, whatever the screen size. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_62%_50%_at_50%_38%,rgb(243_248_251/0.9)_0%,rgb(243_248_251/0.72)_48%,rgb(243_248_251/0)_78%)]"
+          />
+          {/* Life on the reef: bubbles rising and a school of fish crossing below the copy. */}
+          <LiveLayer className="pointer-events-none absolute inset-0 -z-[5] overflow-hidden">
+            <Bubbles height={420} opacity={0.9} />
+            <FishSchool top="66%" duration={36} delay={9} scale={1.35} color="rgb(10 37 64 / 0.7)" />
+            <FishSchool top="78%" duration={48} delay={28} scale={1.1} color="#F2A65A" stripe="#fff" />
+          </LiveLayer>
 
           <div
             className="flex h-full flex-col items-center px-5 pb-20 pt-28 text-center sm:pt-32 lg:pt-[17vh]"
@@ -113,11 +137,19 @@ export default function Hero({ onExplore }: HeroProps) {
             </h1>
 
             <p
-              className="mt-6 max-w-[34rem] text-pretty text-base leading-relaxed text-muted-strong motion-safe:animate-blur-in sm:text-lg"
+              className="mt-6 max-w-[34rem] text-pretty text-base font-medium leading-relaxed text-ink/85 motion-safe:animate-blur-in sm:text-lg"
               style={{ animationDelay: "1350ms" }}
             >
-              Explore AI-powered insights into which coral reef environments show stronger potential
-              for climate resilience.
+              {alertRecall != null && surveys != null ? (
+                <>
+                  In {surveys.toLocaleString()} dive surveys, the heat at which NOAA&apos;s alerts begin was
+                  reached in only <strong className="font-semibold text-ink">{oneIn(alertRecall)}</strong>{" "}
+                  bleaching events.{" "}
+                </>
+              ) : null}
+              ReefSense predicts bleaching risk for{" "}
+              {reefCount ? `${reefCount.toLocaleString()} reefs` : "every mapped reef"}, focused on
+              Indonesia, and explains every estimate.
             </p>
 
             <button

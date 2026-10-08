@@ -150,8 +150,24 @@ export interface ModelMetrics {
   features: string[];
   validation: string;
   model: { roc_auc: number | null; pr_auc: number };
-  baseline_dhw?: { feature: string; roc_auc: number | null };
+  baseline_dhw?: {
+    feature: string;
+    roc_auc: number | null;
+    /** NOAA-style alert rule "peak DHW >= 4": the share of bleaching events it caught (recall). */
+    dhw_ge_4?: { recall: number; precision: number };
+    dhw_ge_8?: { recall: number; precision: number };
+  };
   indonesia_subset?: { n_rows: number; roc_auc: number | null };
+  /** Stress tests from pipeline/06_validate_model.py, attached by the API client when present. */
+  stressTests?: StressTest[];
+}
+
+/** One out-of-sample test: the model against heat stress alone on the same surveys. */
+export interface StressTest {
+  label: string;
+  surveys: number;
+  modelAuc: number;
+  heatAuc: number;
 }
 
 /** GET /api/reefs/{id}/heat-history: daily NOAA Coral Reef Watch heat stress at the reef. */

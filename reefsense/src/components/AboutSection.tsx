@@ -18,7 +18,7 @@ const POINTS = [
 export default function AboutSection() {
   return (
     <section id="about" className="scroll-mt-24 border-t border-border">
-      <div className="mx-auto max-w-[1240px] px-5 py-24 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[1240px] px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-28">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
           <div>
             <Reveal variant="mask">
@@ -32,7 +32,7 @@ export default function AboutSection() {
             <Reveal as="p" delay={150} className="mt-6 text-base leading-relaxed text-muted-strong">
               ReefSense is a research-oriented GIS platform that helps scientists and
               restoration teams explore where coral reef environments show stronger potential to
-              persist under climate stress. It pairs an interactive global map with explainable,
+              persist under climate stress. It pairs an interactive map of reefs across Asia with explainable,
               model-based predictions.
             </Reveal>
             <Reveal as="p" delay={220} className="mt-4 text-sm leading-relaxed text-muted-strong">

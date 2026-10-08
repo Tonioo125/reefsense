@@ -38,7 +38,7 @@ export default function SurveyHistory({ reefId }: { reefId: string }) {
 
   return (
     <section aria-label="Past bleaching surveys">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-brand">Field record</p>
+      <p className="text-xs font-semibold text-brand">Field record</p>
       <h3 className="mt-1 text-[15px] font-semibold text-foreground">Past bleaching surveys nearby</h3>
 
       {status === "loading" ? (

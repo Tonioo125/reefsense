@@ -2,7 +2,7 @@ import Reveal from "@/components/Reveal";
 
 export default function Footer() {
   return (
-    <footer className="mt-24 border-t border-border bg-card">
+    <footer className="bg-[#F4EBD8]">
       <div className="mx-auto flex max-w-[1240px] flex-col gap-8 px-5 py-12 sm:flex-row sm:items-end sm:justify-between sm:px-8">
         <Reveal>
           <div className="flex items-center gap-2.5">

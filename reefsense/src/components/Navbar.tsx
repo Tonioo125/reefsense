@@ -10,6 +10,7 @@ interface NavbarProps {
 
 const NAV_ITEMS = [
   { id: "explore", label: "Explore" },
+  { id: "restore", label: "Restore" },
   { id: "insights", label: "Insights" },
   { id: "about", label: "About" },
 ];
@@ -25,7 +26,7 @@ function StatusIndicator() {
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
       </span>
       <span className="whitespace-nowrap text-[11px] font-medium text-foreground sm:text-xs">
-        Global Reef Dataset
+        Focus: Indonesia
       </span>
     </div>
   );
@@ -62,19 +63,28 @@ export default function Navbar({ active, onNavigate }: NavbarProps) {
     setOpen(false);
   };
 
-  // Escape closes the mobile menu.
+  // Escape, or a tap outside the bar, closes the mobile menu.
+  const barRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    const onPointer = (e: PointerEvent) => {
+      if (!barRef.current?.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
   }, [open]);
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2 pt-2 sm:px-3 sm:pt-3">
       <div
+        ref={barRef}
         className={cn(
           "pointer-events-auto mx-auto max-w-[1240px] border transition-[margin,padding,background-color,border-color,box-shadow,border-radius] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
           floating

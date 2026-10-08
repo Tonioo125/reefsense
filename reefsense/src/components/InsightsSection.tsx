@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useId, useMemo, useState } from "react";
 import {
   CATEGORY_COLORS,
   CATEGORY_ORDER,
@@ -7,7 +7,10 @@ import {
   heatBandShares,
   type HeatBandShare,
 } from "@/lib/reef";
+import FishShoal from "@/components/FishShoal";
 import Reveal from "@/components/Reveal";
+import Term from "@/components/Term";
+import { DolphinPass, LiveLayer } from "@/components/SeaLife";
 import { useInView } from "@/hooks/useInView";
 import type { ModelMetrics, Reef, ResilienceCategory } from "@/types/reef";
 
@@ -16,7 +19,7 @@ interface InsightsSectionProps {
   metrics: ModelMetrics | null;
 }
 
-const BAND_NAMES: Record<ResilienceCategory, string> = { High: "High", Medium: "Moderate", Low: "Low" };
+const BAND_NAMES: Record<ResilienceCategory, string> = { High: "High", Medium: "Medium", Low: "Low" };
 /** Stacked bottom-up: the low-resilience share sits on the baseline so it compares across bins. */
 const STACK: ResilienceCategory[] = ["Low", "Medium", "High"];
 const NOAA_ALERT1_DHW = 4;
@@ -200,41 +203,89 @@ function HeatBandChart({ data }: { data: HeatBandShare[] }) {
   );
 }
 
-const mean = (values: number[]) =>
-  values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+/** What the illustration shows at each heat level, in plain words. */
+function reefStatus(dhw: number): string {
+  if (dhw < 2.5) return "The reef is healthy and the fish are at home.";
+  if (dhw < 4) return "The branching corals are starting to pale.";
+  if (dhw < 8) return "NOAA Alert Level 1: bleaching is likely. Fish leave the white corals.";
+  return "NOAA Alert Level 2: severe bleaching. Almost nowhere is left for the fish.";
+}
+
+/** A slider that heats the illustrated reef: corals bleach one by one and their fish move on. */
+function ReefHeatControl({ heat, onChange }: { heat: number; onChange: (dhw: number) => void }) {
+  const id = useId();
+  return (
+    <div
+      data-no-bubbles=""
+      className="relative mt-8 max-w-md rounded-2xl border border-border bg-card/90 p-4 shadow-soft"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="text-sm font-semibold text-foreground">
+          What if the water gets hotter?
+        </label>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+          {heat.toFixed(1)} <Term term="dhw">DHW</Term>
+        </span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={12}
+        step={0.5}
+        value={heat}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-valuetext={`${heat.toFixed(1)} degree heating weeks. ${reefStatus(heat)}`}
+        className="mt-3 w-full accent-[#E8603F]"
+      />
+      {/* NOAA's alert thresholds on the same scale as the slider. */}
+      <div aria-hidden="true" className="relative mt-1 h-4 text-[10px] text-muted-strong">
+        <span className="absolute -translate-x-1/2" style={{ left: `${(4 / 12) * 100}%` }}>Alert 1</span>
+        <span className="absolute -translate-x-1/2" style={{ left: `${(8 / 12) * 100}%` }}>Alert 2</span>
+      </div>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <p aria-live="polite" className="text-xs leading-relaxed text-muted-foreground">
+          {reefStatus(heat)}
+        </p>
+        {heat > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange(0)}
+            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-brand hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Cool it down
+          </button>
+        )}
+      </div>
+      <p className="mt-2 text-[11px] leading-snug text-muted-strong">
+        An illustration of how bleaching spreads as heat builds, not a prediction for a real reef.
+      </p>
+    </div>
+  );
+}
 
 /** Memoised: the Explore page re-renders on every reef selection, and these inputs rarely change. */
 export default memo(function InsightsSection({ reefs, metrics }: InsightsSectionProps) {
-  const { countData, heatData, stats } = useMemo(() => {
+  const [heat, setHeat] = useState(0);
+  const { countData, heatData, skill, facts, tests } = useMemo(() => {
     const counts = CATEGORY_ORDER.map((category) => ({
       category,
       count: reefs.filter((r) => r.category === category).length,
     }));
     const high = reefs.filter((r) => r.category === "High").length;
     const has = reefs.length > 0;
-    const auc = metrics?.model.roc_auc;
-    const baseAuc = metrics?.baseline_dhw?.roc_auc;
+    const auc = metrics?.model.roc_auc ?? null;
+    const baseAuc = metrics?.baseline_dhw?.roc_auc ?? null;
     return {
       countData: counts,
       heatData: heatBandShares(reefs),
-      stats: [
-        { value: has ? reefs.length.toLocaleString() : "—", label: "Reef sites analysed" },
-        {
-          value: has ? formatPercent(high / reefs.length) : "—",
-          label: "High predicted resilience",
-        },
-        {
-          value: has ? formatPercent(mean(reefs.map((r) => r.resilienceProbability))) : "—",
-          label: "Mean predicted probability",
-        },
-        {
-          value: auc != null ? auc.toFixed(2) : "—",
-          label:
-            baseAuc != null
-              ? `Model ROC AUC (vs ${baseAuc.toFixed(2)} for heat stress alone)`
-              : "Model ROC AUC",
-        },
-        { value: metrics ? String(metrics.features.length) : "—", label: "Model predictors" },
+      skill: { auc, baseAuc },
+      tests: metrics?.stressTests ?? [],
+      facts: [
+        { value: has ? reefs.length.toLocaleString() : "—", label: "reefs mapped" },
+        { value: has ? formatPercent(high / reefs.length) : "—", label: "with high predicted resilience" },
+        { value: metrics ? String(metrics.features.length) : "—", label: "conditions weighed per reef" },
+        { value: metrics ? metrics.n_rows.toLocaleString() : "—", label: "dive surveys it learned from" },
       ],
     };
   }, [reefs, metrics]);
@@ -242,32 +293,116 @@ export default memo(function InsightsSection({ reefs, metrics }: InsightsSection
   return (
     <section id="insights" className="scroll-mt-24">
       <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-28 sm:px-8 sm:pt-36">
-        <div className="max-w-3xl">
+        {/* A full-width reef behind the heading: its fish swim behind the text and still notice the cursor. */}
+        <div className="relative pb-48 sm:pb-56 lg:pb-64">
+          <FishShoal heat={heat} className="absolute -top-28 bottom-0 left-1/2 w-screen -translate-x-1/2 sm:-top-36" />
+          <div className="relative max-w-3xl">
           <Reveal variant="mask">
             <h2 className="text-balance text-4xl font-semibold leading-[1.04] tracking-[-0.03em] text-foreground sm:text-5xl lg:text-6xl">
               Patterns across the{" "}
-              <span className="font-display font-normal italic tracking-[-0.02em] text-brand">global dataset</span>
+              <span className="font-display font-normal italic tracking-[-0.02em] text-brand">every mapped reef</span>
             </h2>
           </Reveal>
           <Reveal as="p" delay={150} className="mt-6 max-w-2xl text-base leading-relaxed text-muted-strong sm:text-lg">
-            Model-based estimates for every mapped reef under its most recent 12 weeks of
-            satellite heat stress. The model is validated on surveys from ecoregions it never saw
-            during training, and compared against heat stress alone.
+            Every mapped reef, scored against its latest 12 weeks of ocean heat measured by
+            satellite. Before trusting it, we tested the model on parts of the ocean it had never
+            seen.
           </Reveal>
+          <ReefHeatControl heat={heat} onChange={setHeat} />
+        </div>
         </div>
 
-        <dl className="mt-14 grid grid-cols-2 gap-x-4 gap-y-8 border-y border-border py-8 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-border">
-          {stats.map((s, i) => (
-            <Reveal key={s.label} delay={i * 80} className="flex flex-col-reverse justify-end lg:px-6 lg:first:pl-0">
-              <dt className="mt-2 text-sm leading-snug text-muted-strong">{s.label}</dt>
-              <dd className="font-display text-4xl font-medium tabular-nums tracking-tight text-foreground">
-                {s.value}
-              </dd>
-            </Reveal>
-          ))}
-        </dl>
+        {/* The model's skill as one sentence anyone can read; the numbers carry the emphasis. */}
+        <Reveal className="mt-14 border-y border-border py-10">
+          {skill.auc != null ? (
+            <p className="max-w-4xl text-balance text-2xl font-medium leading-snug tracking-[-0.015em] text-foreground sm:text-3xl">
+              Shown two reef surveys where only one found bleaching, the model picks the bleached one{" "}
+              <span className="font-display text-[1.15em] italic text-brand">
+                {formatPercent(skill.auc)} of the time
+              </span>
+              {skill.baseAuc != null && (
+                <>
+                  . Ocean heat alone gets{" "}
+                  <span className="font-display text-[1.15em] italic text-coral-text">
+                    {formatPercent(skill.baseAuc)}
+                  </span>
+                </>
+              )}
+              .
+            </p>
+          ) : (
+            <p className="text-2xl font-medium text-muted-strong">Model skill is loading…</p>
+          )}
+          <p className="mt-3 text-sm text-muted-strong">
+            50% would be a coin toss. Tested on reefs in regions the model never saw while learning.
+          </p>
 
-        <div className="mt-10 grid grid-cols-1 rounded-[28px] border border-border bg-card shadow-float lg:grid-cols-[2fr_3fr] lg:divide-x lg:divide-border">
+          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4">
+            {facts.map((f) => (
+              <div key={f.label} className="flex flex-row-reverse items-baseline justify-end gap-2">
+                <dt className="text-sm text-muted-strong">{f.label}</dt>
+                <dd className="font-display text-2xl font-medium tabular-nums text-foreground">{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {tests.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-sm font-semibold text-foreground">
+                Tested {tests.length} more ways, each on data it never saw
+              </h3>
+              <table className="mt-3 w-full max-w-3xl text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-muted-strong">
+                    <th scope="col" className="py-2 pr-4 font-medium">Test</th>
+                    <th scope="col" className="hidden py-2 pr-4 text-right font-medium sm:table-cell">Surveys</th>
+                    <th scope="col" className="py-2 pr-4 text-right font-medium">Model</th>
+                    <th scope="col" className="py-2 pr-4 text-right font-medium">Heat alone</th>
+                    <th scope="col" className="py-2 font-medium">
+                      <span className="sr-only">Result</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {tests.map((t) => {
+                    const better = t.modelAuc - t.heatAuc >= 0.01;
+                    return (
+                      <tr key={t.label}>
+                        <th scope="row" className="py-2.5 pr-4 font-normal text-foreground">{t.label}</th>
+                        <td className="hidden py-2.5 pr-4 text-right tabular-nums text-muted-strong sm:table-cell">
+                          {t.surveys.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 pr-4 text-right font-semibold tabular-nums text-foreground">
+                          {formatPercent(t.modelAuc)}
+                        </td>
+                        <td className="py-2.5 pr-4 text-right tabular-nums text-muted-strong">
+                          {formatPercent(t.heatAuc)}
+                        </td>
+                        <td className="py-2.5 text-xs">
+                          {better ? (
+                            <span className="text-brand">Model better</span>
+                          ) : (
+                            <span className="text-muted-strong">Heat alone does as well</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-muted-strong">
+                Same measure as above: how often the bleached survey of a pair is ranked higher.
+              </p>
+            </div>
+          )}
+        </Reveal>
+
+        {/* A dolphin and its fish glide along the top of the charts (full-bleed, decorative). */}
+        <div className="relative mt-24">
+          <LiveLayer className="pointer-events-none absolute -top-[4.75rem] left-1/2 h-24 w-screen -translate-x-1/2 overflow-hidden">
+            <DolphinPass top="18px" duration={28} delay={4} />
+          </LiveLayer>
+        <div className="relative grid grid-cols-1 rounded-[28px] border border-border bg-card shadow-float lg:grid-cols-[2fr_3fr] lg:divide-x lg:divide-border">
           <Reveal as="figure" className="flex flex-col p-6 sm:p-8">
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">Reefs by predicted resilience</h3>
@@ -282,11 +417,13 @@ export default memo(function InsightsSection({ reefs, metrics }: InsightsSection
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">Predicted resilience by recent heat stress</h3>
               <p className="mt-1 text-xs text-muted-strong">
-                Share of reefs in each band, by peak heat stress over the past 12 weeks (Degree Heating Weeks)
+                Share of reefs in each band, by peak heat stress over the past 12 weeks (<Term term="dhw">Degree Heating Weeks</Term>)
               </p>
             </figcaption>
             <HeatBandChart data={heatData} />
           </Reveal>
+        </div>
+
         </div>
 
         <Reveal as="p" variant="fade-in" className="mt-4 text-xs text-muted-strong">

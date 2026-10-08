@@ -18,7 +18,7 @@ export default function PlainSummary({ reef }: { reef: Reef }) {
 
   return (
     <section aria-label="This reef in plain words" className="rounded-lg border border-border bg-secondary/50 p-4">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-brand">
         <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
         In plain words
       </p>

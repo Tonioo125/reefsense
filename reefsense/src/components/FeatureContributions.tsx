@@ -51,7 +51,7 @@ export default function FeatureContributions({
 
   return (
     <section>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-brand">
+      <p className="text-xs font-semibold text-brand">
         Model explanation
       </p>
       <h3 className="mt-1 text-[15px] font-semibold text-foreground">
