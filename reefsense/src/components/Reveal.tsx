@@ -2,7 +2,7 @@ import type { ElementType, HTMLAttributes } from "react";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
 
-export type RevealVariant = "fade-up" | "fade-in" | "scale-in";
+export type RevealVariant = "fade-up" | "fade-in" | "scale-in" | "mask";
 
 type RevealProps = HTMLAttributes<HTMLElement> & {
   as?: "div" | "li" | "figure" | "section" | "aside" | "p" | "span";
@@ -24,7 +24,8 @@ export default function Reveal({
   style,
   ...rest
 }: RevealProps) {
-  const [ref, inView] = useInView<HTMLElement>();
+  // Trigger on the first pixel in view, so a nav jump never lands on blank content.
+  const [ref, inView] = useInView<HTMLElement>({ rootMargin: "0px", threshold: 0 });
   const Tag = (as ?? "div") as ElementType;
   return (
     <Tag

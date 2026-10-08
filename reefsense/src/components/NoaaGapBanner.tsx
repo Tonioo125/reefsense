@@ -14,18 +14,20 @@ export default function NoaaGapBanner({ summary, active, onToggle }: NoaaGapBann
   return (
     <div
       className={cn(
-        "absolute left-3 top-14 z-[1000] flex max-w-[calc(100%-1.5rem)] items-center gap-2.5 rounded-lg border px-3 py-2 shadow-float backdrop-blur-md sm:left-14 sm:top-3 sm:max-w-[23rem]",
-        active ? "border-coral/50 bg-coral-soft/95" : "border-border bg-card/90",
+        "flex max-w-full items-center gap-2 rounded-xl border py-1 pl-2.5 pr-1 shadow-float",
+        active ? "border-coral/50 bg-coral-soft/95" : "border-border bg-card/95",
       )}
     >
-      <BellOff className="h-4 w-4 shrink-0 text-coral" strokeWidth={1.75} aria-hidden="true" />
+      <BellOff className="h-3.5 w-3.5 shrink-0 text-coral" strokeWidth={2} aria-hidden="true" />
       <p
-        className="text-xs leading-snug text-foreground"
+        className="whitespace-nowrap text-xs leading-snug text-foreground"
         title={`${summary.definition} For ${summary.nonHeatTopDriverCount} of these reefs the model's largest driver is a site attribute rather than recent heat.`}
       >
-        <span className="font-semibold tabular-nums">{summary.count.toLocaleString()}</span> reefs at
-        elevated predicted bleaching risk where NOAA&apos;s alerts stayed below Alert Level 1 for 12
-        weeks
+        <span className="font-semibold tabular-nums">{summary.count.toLocaleString()}</span> at-risk reefs
+        NOAA&apos;s alerts missed
+        <span className="sr-only">
+          : elevated predicted bleaching risk where NOAA&apos;s alerts stayed below Alert Level 1 for 12 weeks
+        </span>
       </p>
       <button
         type="button"

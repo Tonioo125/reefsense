@@ -4,42 +4,44 @@
 
 /*
   ReefSense design tokens.
-  Tropical-ocean palette; hex source of truth is src/lib/palette.ts.
+  Daylight around a deep-water hero; hex source of truth is src/lib/palette.ts.
   Values are space-separated RGB channels so Tailwind opacity modifiers work.
 */
 @layer base {
   :root {
-    --background: 245 252 252; /* Ice Ocean #F5FCFC */
-    --foreground: 22 78 90; /* Deep Teal #164E5A */
+    color-scheme: light;
+
+    --background: 243 248 251; /* ground #F3F8FB */
+    --foreground: 10 37 64; /* ink #0A2540 */
 
     --card: 255 255 255;
-    --card-foreground: 22 78 90;
+    --card-foreground: 10 37 64;
 
     --popover: 255 255 255;
-    --popover-foreground: 22 78 90;
+    --popover-foreground: 10 37 64;
 
-    --primary: 0 166 166; /* Bright Teal #00A6A6 */
+    --primary: 14 94 140; /* ocean #0E5E8C */
     --primary-foreground: 255 255 255;
-    --primary-strong: 0 122 122; /* derived #007A7A */
+    --primary-strong: 10 74 112; /* oceanStrong #0A4A70, hover */
 
-    --secondary: 230 248 248; /* Soft Aqua #E6F8F8 */
-    --secondary-foreground: 22 78 90;
+    --secondary: 231 240 246; /* shelf #E7F0F6 */
+    --secondary-foreground: 10 37 64;
 
-    --muted: 230 248 248;
-    --muted-foreground: 102 139 147; /* Sea Gray #668B93, text >= 14px */
-    --muted-strong: 78 114 122; /* derived #4E727A, text < 14px */
+    --muted: 231 240 246;
+    --muted-foreground: 74 99 120; /* slate #4A6378, text >= 14px */
+    --muted-strong: 59 84 104; /* slateStrong #3B5468, text < 14px */
 
-    --accent: 230 248 248;
-    --accent-foreground: 22 78 90;
+    --accent: 231 240 246;
+    --accent-foreground: 10 37 64;
 
-    --brand: 0 122 122; /* text-safe teal #007A7A */
+    --brand: 11 114 133; /* reef #0B7285, text-safe accent */
     --brand-foreground: 255 255 255;
 
-    --border: 209 239 239; /* derived #D1EFEF */
-    --input: 209 239 239;
-    --ring: 0 166 166;
+    --border: 211 226 236; /* line #D3E2EC */
+    --input: 211 226 236;
+    --ring: 11 114 133;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   * {
@@ -52,6 +54,13 @@
     }
   }
 
+  html,
+  body {
+    background: rgb(var(--background));
+    /* Clip, not hide: no sideways scroll on phones, and sticky positioning still works. */
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "cv05", "ss01";
@@ -59,18 +68,25 @@
   }
 
   ::selection {
-    background: rgb(var(--primary) / 0.18);
+    background: rgb(var(--brand) / 0.2);
   }
 
-  /* Thin, unobtrusive scrollbars for the analysis panel. */
+  :focus-visible {
+    outline-color: rgb(var(--ring));
+  }
+
+  /* Thin, unobtrusive scrollbars, tinted from the water. */
+  html,
   .scroll-subtle {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--border)) transparent;
   }
-  .scroll-subtle::-webkit-scrollbar {
+  .scroll-subtle::-webkit-scrollbar,
+  html::-webkit-scrollbar {
     width: 8px;
   }
-  .scroll-subtle::-webkit-scrollbar-thumb {
+  .scroll-subtle::-webkit-scrollbar-thumb,
+  html::-webkit-scrollbar-thumb {
     background-color: rgb(var(--border));
     border-radius: 9999px;
   }
@@ -80,6 +96,45 @@
   .text-balance {
     text-wrap: balance;
   }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* --- Hero: the dive ------------------------------------------------------- */
+@layer components {
+  /* Words rise out of a mask; the clip box leaves room for descenders and italic overhang. */
+  .word-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding: 0.06em 0.16em 0.2em;
+    margin: -0.06em -0.16em -0.2em;
+  }
+  .word-mask > span {
+    display: inline-block;
+  }
+
+  /* Caustic light drifting over the water: transform-only, one tile per loop. */
+  .caustics {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% + var(--tile));
+    height: calc(100% + var(--tile));
+    background-image: url("/hero/caustics.webp");
+    background-size: var(--tile) var(--tile);
+    pointer-events: none;
+    will-change: transform;
+  }
+}
+
+/* Looping hero motion stops while the hero is off screen. */
+[data-offscreen] .motion-safe\:animate-drift,
+[data-offscreen] .motion-safe\:animate-caustic,
+[data-offscreen] .motion-safe\:animate-caustic-reverse,
+[data-offscreen] .motion-safe\:animate-sink {
+  animation-play-state: paused;
 }
 
 /* --- Scroll reveals (see components/Reveal.tsx) ---------------------------- */
@@ -87,14 +142,26 @@
   .reveal {
     opacity: 0;
     transition:
-      opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity 900ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+      filter 900ms cubic-bezier(0.16, 1, 0.3, 1),
+      clip-path 1100ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .reveal-fade-up {
-    transform: translate3d(0, 24px, 0);
+    transform: translate3d(0, 28px, 0);
+    filter: blur(6px);
   }
   .reveal-scale-in {
     transform: scale(0.96);
+  }
+  /* Headings rise out of a mask, like the hero headline. Only this variant clips. */
+  .reveal-mask {
+    opacity: 1;
+    transform: translate3d(0, 40%, 0);
+    clip-path: inset(0 -20% 100% -20%);
+  }
+  .reveal-mask.is-visible {
+    clip-path: inset(-20% -20% -30% -20%);
   }
   .reveal:not(.is-visible) {
     will-change: opacity, transform;
@@ -106,36 +173,56 @@
   .reveal.is-visible {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
 /* --- Leaflet integration -------------------------------------------------- */
 .leaflet-container {
   font-family: inherit;
-  background: rgb(var(--secondary));
+  background: rgb(var(--background));
+}
+
+/* Esri World Ocean, calmed a little so the reef markers stay the brightest thing on the map. */
+.basemap-tiles {
+  filter: saturate(0.75) brightness(1.06);
+}
+
+/* Phones pinch to zoom; the buttons would only crowd the filter chips. */
+@media (max-width: 639px) {
+  .leaflet-control-zoom {
+    display: none;
+  }
 }
 
 .leaflet-control-attribution {
   font-size: 10px;
   background: rgb(255 255 255 / 0.8) !important;
   color: rgb(var(--muted-strong));
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  border-top-left-radius: 8px;
 }
 .leaflet-control-attribution a {
   color: rgb(var(--brand));
 }
 
-.leaflet-bar,
+.leaflet-bar {
+  border: 1px solid rgb(var(--border)) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 12px 28px -18px rgb(10 37 64 / 0.35) !important;
+}
 .leaflet-bar a {
+  background: rgb(var(--card)) !important;
   border-color: rgb(var(--border)) !important;
-  color: rgb(var(--brand)) !important;
+  color: rgb(var(--foreground)) !important;
 }
 .leaflet-bar a:hover {
   background: rgb(var(--secondary)) !important;
 }
 .leaflet-bar a:focus-visible {
   outline: 2px solid rgb(var(--ring));
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 .leaflet-container:focus-visible {
   outline: 2px solid rgb(var(--ring));
@@ -147,25 +234,38 @@ path.leaflet-interactive:focus {
   outline: none;
 }
 
-/* Cool, light OSM basemap: slightly translucent over Soft Aqua, so beige land reads ice-white and water stays aqua. */
-.basemap-tiles {
-  filter: saturate(0.8) brightness(1.05) contrast(0.92);
-}
-
-/* Hover cards for reef markers: a white card with a thin aqua border. */
-.reef-tooltip {
-  background: #fff;
+/* Popups (the open-water scenario probe) in the water's own panel colour. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgb(var(--card));
   color: rgb(var(--foreground));
   border: 1px solid rgb(var(--border));
-  border-radius: 10px;
+  box-shadow: 0 24px 50px -24px rgb(10 37 64 / 0.4);
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 16px;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: rgb(var(--muted-strong));
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: rgb(var(--foreground));
+}
+
+/* Hover cards for reef markers: a deep-water card with a hairline. */
+.reef-tooltip {
+  background: rgb(var(--card));
+  color: rgb(var(--foreground));
+  border: 1px solid rgb(var(--border));
+  border-radius: 12px;
   padding: 9px 11px 10px;
   font-size: 11px;
   font-weight: 400;
   white-space: normal;
-  box-shadow: 0 10px 24px -14px rgba(22, 78, 90, 0.35);
+  box-shadow: 0 18px 40px -20px rgb(10 37 64 / 0.4);
 }
 .reef-tooltip::before {
-  border-top-color: #fff !important;
+  border-top-color: rgb(var(--card)) !important;
 }
 
 /* --- Reduced motion ------------------------------------------------------- */
@@ -183,5 +283,21 @@ path.leaflet-interactive:focus {
   .reveal {
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+  }
+
+  .caustics {
+    display: none;
+  }
+}
+
+/* Printouts and PDF exports show every section, revealed or not. */
+@media print {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
   }
 }

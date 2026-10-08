@@ -5,7 +5,7 @@ import { PALETTE, RESILIENCE } from "@/lib/palette";
 import { coverTrend } from "@/lib/reef";
 import type { SurveyYear } from "@/types/reef";
 
-const AXIS = { fill: PALETTE.seaGrayStrong, fontSize: 10 };
+const AXIS = { fill: PALETTE.slateStrong, fontSize: 10 };
 
 function YearTooltip({ active, payload }: { active?: boolean; payload?: { payload: SurveyYear }[] }) {
   if (!active || !payload?.length) return null;
@@ -67,16 +67,16 @@ export default function SurveyHistory({ reefId }: { reefId: string }) {
             >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={years} margin={{ top: 6, right: 6, bottom: 0, left: -26 }}>
-                  <CartesianGrid vertical={false} stroke={PALETTE.border} />
+                  <CartesianGrid vertical={false} stroke={PALETTE.line} />
                   <XAxis dataKey="year" tickLine={false} axisLine={false} tick={AXIS} minTickGap={8} />
                   <YAxis domain={[0, 100]} ticks={[0, 50, 100]} unit="%" tickLine={false} axisLine={false} tick={AXIS} />
-                  <ReferenceLine y={threshold} stroke={PALETTE.seaGray} strokeDasharray="4 3" />
-                  <Tooltip cursor={{ fill: PALETTE.softAqua }} content={<YearTooltip />} />
+                  <ReferenceLine y={threshold} stroke={PALETTE.slate} strokeDasharray="4 3" />
+                  <Tooltip cursor={{ fill: PALETTE.shelf }} content={<YearTooltip />} />
                   <Bar dataKey="meanBleachedPct" radius={[3, 3, 0, 0]} maxBarSize={22} isAnimationActive={false}>
                     {years.map((y) => (
                       <Cell
                         key={y.year}
-                        fill={(y.meanBleachedPct ?? 0) >= threshold ? RESILIENCE.Low.base : PALETTE.brightTeal}
+                        fill={(y.meanBleachedPct ?? 0) >= threshold ? RESILIENCE.Low.base : PALETTE.reef}
                       />
                     ))}
                   </Bar>

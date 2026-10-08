@@ -23,6 +23,12 @@ interface ResilienceMapProps {
   history?: { points: HistoryPoint[]; countries: string[]; thresholdPct: number } | null;
 }
 
+/** Opening view: the Indo-Pacific reefs, Maldives to Japan. */
+const INITIAL_BOUNDS: [[number, number], [number, number]] = [
+  [-11, 72],
+  [36, 146],
+];
+
 const RADIUS = 7;
 const SELECTED_RADIUS = 10;
 const HOVER_GROWTH = 3;
@@ -33,21 +39,41 @@ function markerColor(reef: Reef, colorBy: MapColorBy) {
     : CATEGORY_COLORS[reef.category].base;
 }
 
-const OUTLINE = PALETTE.deepTeal;
-const GAP_RING = PALETTE.deepTeal;
+// White hairlines keep dense clusters legible on the pale basemap; flagged reefs ring in ink.
+const OUTLINE = PALETTE.white;
+const GAP_RING = PALETTE.ink;
 
 function markerStyle(reef: Reef, colorBy: MapColorBy, selected: boolean, highlightGaps: boolean) {
   const fillColor = markerColor(reef, colorBy);
-  if (selected) return { color: OUTLINE, opacity: 1, weight: 2.5, fillColor, fillOpacity: 1 };
+  if (selected) return { color: PALETTE.ink, opacity: 1, weight: 2.5, fillColor, fillOpacity: 1 };
   if (highlightGaps && reef.noaaGap) return { color: GAP_RING, opacity: 1, weight: 2.5, fillColor, fillOpacity: 1 };
   if (highlightGaps) return { color: OUTLINE, opacity: 0.25, weight: 0.5, fillColor, fillOpacity: 0.18 };
-  return { color: OUTLINE, opacity: 0.55, weight: 1, fillColor, fillOpacity: 0.9 };
+  return { color: OUTLINE, opacity: 0.9, weight: 0.75, fillColor, fillOpacity: 0.92 };
 }
 
 function markerRadius(reef: Reef, selected: boolean, highlightGaps: boolean) {
   if (selected) return SELECTED_RADIUS;
   if (highlightGaps) return reef.noaaGap ? RADIUS + 1 : RADIUS - 2;
   return RADIUS;
+}
+
+/**
+ * The wheel scrolls the page until the visitor clicks into the map; it then zooms the map until the
+ * pointer leaves. Without this, scrolling down the page stalls whenever the cursor crosses the map.
+ */
+function WheelZoomOnClick() {
+  const map = useMap();
+  useEffect(() => {
+    const enable = () => map.scrollWheelZoom.enable();
+    const disable = () => map.scrollWheelZoom.disable();
+    map.on("click", enable);
+    map.on("mouseout", disable);
+    return () => {
+      map.off("click", enable);
+      map.off("mouseout", disable);
+    };
+  }, [map]);
+  return null;
 }
 
 /** Click on open water: a model scenario for that point at an assumed heat stress. */
@@ -166,7 +192,7 @@ function MarkerLayer({ reefs, selectedId, colorBy, highlightGaps, onSelect, onHo
       marker.on("mouseover", () => {
         const isSelected = reef.id === selectedRef.current;
         marker.setRadius(markerRadius(reef, isSelected, highlightGaps) + HOVER_GROWTH);
-        marker.setStyle({ color: OUTLINE, opacity: 1, weight: 2.5, fillOpacity: 1 });
+        marker.setStyle({ color: PALETTE.ink, opacity: 1, weight: 2.5, fillOpacity: 1 });
         marker.bringToFront();
         handlers.current.onHover(reef);
       });
@@ -224,7 +250,7 @@ function HistoryLayer({
       const severe = mean >= thresholdPct;
       const marker = L.circleMarker([lat, lon], {
         radius: severe ? 6 : 4.5,
-        color: PALETTE.deepTeal,
+        color: PALETTE.ink,
         opacity: severe ? 0.7 : 0.35,
         weight: severe ? 1 : 0.75,
         fillColor: bleachColor(mean),
@@ -275,23 +301,25 @@ export default function ResilienceMap({
       className="h-full w-full"
     >
       <MapContainer
-        center={[16, 95]}
-        zoom={2}
+        bounds={INITIAL_BOUNDS}
         minZoom={2}
         maxZoom={11}
         worldCopyJump
-        scrollWheelZoom
+        scrollWheelZoom={false}
         // Canvas draws thousands of reef markers far faster than one SVG element each; every marker
         // shares this one canvas, and a few px of hit tolerance makes small markers easy to hover and tap.
         preferCanvas
         renderer={renderer}
         className="h-full w-full"
       >
+        <WheelZoomOnClick />
+        {/* Esri World Ocean: seafloor depth shading for the reef story; labels on a separate layer
+            above the reef extent. Keyless, like the satellite view in ReefImagery. */}
         <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}"
+          maxNativeZoom={10}
           className="basemap-tiles"
-          opacity={0.85}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution="Basemap &copy; Esri, GEBCO, NOAA, Garmin, HERE and other contributors"
         />
 
         {/* Reef extent tiles sit in the tile pane, so they always draw beneath the reef markers. */}
@@ -305,6 +333,13 @@ export default function ResilienceMap({
             attribution={REEF_AREA_ATTRIBUTION}
           />
         )}
+        {/* Place names above the reef extent, still beneath the markers. */}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxNativeZoom={10}
+          zIndex={3}
+          opacity={0.85}
+        />
 
         {history && (
           <HistoryLayer points={history.points} countries={history.countries} thresholdPct={history.thresholdPct} />

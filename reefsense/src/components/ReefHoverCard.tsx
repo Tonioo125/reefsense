@@ -33,7 +33,7 @@ function ScaleBar({
         <span key={t} className="absolute top-0 h-full w-px bg-white/60" style={{ left: `${t * 100}%` }} />
       ))}
       <span
-        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(22,78,90,0.3)]"
+        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(10,37,64,0.3)]"
         style={{ left: `${Math.min(Math.max(position, 0), 1) * 100}%`, background: color }}
       />
     </div>

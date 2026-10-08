@@ -150,9 +150,7 @@ function PhotoGallery({ reef, photos, status, onRetry }: ReefImageryProps) {
 export default function ReefImagery({ reef, photos, status, onRetry }: ReefImageryProps) {
   return (
     <Reveal as="section" variant="fade-in">
-      <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-strong">
-        Reef imagery
-      </p>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Reef imagery</h3>
       <SatelliteView reef={reef} />
       <div className="mt-4">
         <PhotoGallery reef={reef} photos={photos} status={status} onRetry={onRetry} />

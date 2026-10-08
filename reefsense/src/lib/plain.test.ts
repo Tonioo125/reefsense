@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bleachColor, eventForYear } from "@/lib/history";
+import { RESILIENCE } from "@/lib/palette";
 import { chanceInWords, plainHeat, plainHistory, plainRisk } from "@/lib/plain";
 import type { SurveyHistory } from "@/types/reef";
 
@@ -70,7 +71,8 @@ describe("bleaching history helpers", () => {
   });
   it("colours observed bleaching on a light-to-dark scale", () => {
     expect(bleachColor(0)).toBe("#fde7e1".toUpperCase());
-    expect(bleachColor(100)).toBe("#8D3C3C");
+    // The severe end is the palette's low-resilience text colour, not a fixed hex.
+    expect(bleachColor(100)).toBe(RESILIENCE.Low.text);
     expect(bleachColor(20)).toMatch(/^#[0-9a-f]{6}$/);
   });
 });

@@ -14,13 +14,14 @@ import { useReefResource } from "@/hooks/useReefResource";
 import { PALETTE, RESILIENCE } from "@/lib/palette";
 import { formatDay, heatPeak } from "@/lib/reef";
 
-const AXIS = { fill: PALETTE.seaGrayStrong, fontSize: 10 };
+const AXIS = { fill: PALETTE.slateStrong, fontSize: 10 };
 const tooltipStyle = {
   borderRadius: 8,
-  border: `1px solid ${PALETTE.border}`,
+  border: `1px solid ${PALETTE.line}`,
+  background: PALETTE.white,
   fontSize: 12,
-  boxShadow: "0 10px 30px -18px rgba(22,78,90,0.3)",
-  color: PALETTE.deepTeal,
+  boxShadow: "0 10px 30px -18px rgba(10,37,64,0.3)",
+  color: PALETTE.ink,
 };
 
 /**
@@ -69,7 +70,7 @@ export default function HeatTimeline({ reefId }: { reefId: string }) {
                     <stop offset="100%" stopColor={PALETTE.coral} stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke={PALETTE.border} />
+                <CartesianGrid vertical={false} stroke={PALETTE.line} />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(d: string) => formatDay(d, false)}
@@ -85,7 +86,7 @@ export default function HeatTimeline({ reefId }: { reefId: string }) {
                     y={t.dhw}
                     stroke={t.dhw >= 8 ? RESILIENCE.Low.base : RESILIENCE.Medium.base}
                     strokeDasharray="4 3"
-                    label={{ value: t.label, position: "insideTopRight", fontSize: 9, fill: PALETTE.seaGrayStrong }}
+                    label={{ value: t.label, position: "insideTopRight", fontSize: 9, fill: PALETTE.slateStrong }}
                   />
                 ))}
                 <Tooltip
