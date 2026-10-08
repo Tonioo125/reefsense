@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Pause, Play, X } from "lucide-react";
 import { BLEACH_GRADIENT, FEW_SURVEYS, eventForYear } from "@/lib/history";
 import { formatPercent } from "@/lib/reef";
-import { PALETTE } from "@/lib/palette";
+import { PALETTE, RESILIENCE } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 import type { HistoryYear } from "@/types/reef";
 
@@ -58,7 +58,7 @@ export default function HistoryReplay({ years, year, onYearChange, playing, onPl
         <div className="min-w-0 flex-1" aria-live="polite">
           <p className="flex flex-wrap items-baseline gap-x-2">
             <span className="font-display text-2xl font-medium tabular-nums leading-none text-foreground">{year}</span>
-            {event && <span className="text-xs font-semibold text-[#8D3C3C]">{event.name}</span>}
+            {event && <span className="text-xs font-semibold" style={{ color: RESILIENCE.Low.text }}>{event.name}</span>}
           </p>
           {current && (
             <p className="mt-1 text-xs text-muted-strong">
@@ -103,7 +103,7 @@ export default function HistoryReplay({ years, year, onYearChange, playing, onPl
                 className={cn("block w-full rounded-t-[3px] transition-opacity", !selected && "opacity-60 group-hover:opacity-90")}
                 style={{
                   height: `${Math.max((y.bleachedShare / maxShare) * 100, 4)}%`,
-                  background: selected ? PALETTE.deepTeal : inEvent ? "#D95C5C" : PALETTE.seaGray,
+                  background: selected ? PALETTE.deepTeal : inEvent ? RESILIENCE.Low.base : PALETTE.seaGray,
                   opacity: y.surveys < FEW_SURVEYS && !selected ? 0.3 : undefined,
                 }}
               />
@@ -126,7 +126,7 @@ export default function HistoryReplay({ years, year, onYearChange, playing, onPl
           </span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" style={{ background: "#D95C5C" }} />
+          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" style={{ background: RESILIENCE.Low.base }} />
           Mass bleaching event
         </span>
       </div>

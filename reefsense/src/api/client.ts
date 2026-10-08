@@ -8,6 +8,7 @@ import type {
   Reef,
   ReefExplanation,
   ReefNews,
+  ReefPhoto,
   SurveyHistory,
 } from "@/types/reef";
 
@@ -19,6 +20,7 @@ import type {
  *   GET  /api/reefs/{id}              -> getReef(id)
  *   POST /api/predict                 -> predict(input)
  *   GET  /api/reefs/{id}/explanation  -> getExplanation(id)
+ *   GET  /api/reefs/{id}/photos       -> getReefPhotos(id)
  *   GET  /api/reefs/{id}/heat-history -> getHeatHistory(id)
  *   GET  /api/reefs/{id}/survey-history -> getSurveyHistory(id)
  *   GET  /api/reefs/{id}/news         -> getReefNews(id)
@@ -85,6 +87,11 @@ export function getReef(id: string): Promise<Reef | null> {
 /** GET /api/reefs/{id}/explanation */
 export function getExplanation(id: string): Promise<ReefExplanation | null> {
   return httpOrNull<ReefExplanation>(`/reefs/${encodeURIComponent(id)}/explanation`);
+}
+
+/** GET /api/reefs/{id}/photos: community photos near the reef (404 or none -> []). */
+export async function getReefPhotos(id: string): Promise<ReefPhoto[]> {
+  return (await httpOrNull<ReefPhoto[]>(`/reefs/${encodeURIComponent(id)}/photos`)) ?? [];
 }
 
 /** GET /api/reefs/{id}/heat-history: daily Degree Heating Weeks over the recent window. */

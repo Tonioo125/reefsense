@@ -4,7 +4,7 @@
 
 **Live demo:** _(add the service URL after deploying)_
 
-> Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefResilience web app in `reefresilience/` is the main frontend.
+> Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefSense web app in `reefsense/` is the main frontend.
 
 ## The problem
 
@@ -98,11 +98,11 @@ pip install -r backend/requirements.txt
 cd backend && uvicorn main:app --reload --port 8000
 
 # 3. Frontend (Node 18+)
-cd reefresilience && npm install && npm run dev   # http://localhost:5173
+cd reefsense && npm install && npm run dev   # http://localhost:5173
 # The original single-panel UI is still in frontend/ and uses the same API.
 ```
 
-API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/explanation`, `GET /api/reefs/{id}/heat-history` (daily DHW, 12 weeks), `GET /api/reefs/{id}/survey-history` (past GCBD surveys within 10 km, by year), `GET /api/reefs/{id}/news` (coral stories from Mongabay that name the reef's province or country; about the region, not the specific reef), `GET /api/noaa-gap`, `GET /api/bleaching-history` (every observed bleaching survey since 1998, per location and year, for the replay map), `POST /api/predict`, `GET /api/model`, plus the original `GET /api/sites` and `GET /api/ranking`.
+API endpoints: `GET /api/reefs`, `GET /api/reefs/{id}`, `GET /api/reefs/{id}/explanation`, `GET /api/reefs/{id}/heat-history` (daily DHW, 12 weeks), `GET /api/reefs/{id}/survey-history` (past GCBD surveys within 10 km, by year), `GET /api/reefs/{id}/news` (coral stories from Mongabay that name the reef's province or country; about the region, not the specific reef), `GET /api/reefs/{id}/photos` (cached iNaturalist coral photos within 10 km; refreshed weekly by the GitHub Actions data sync, see `pipeline/README.md`), `GET /api/noaa-gap`, `GET /api/bleaching-history` (every observed bleaching survey since 1998, per location and year, for the replay map), `POST /api/predict`, `GET /api/model`, plus the original `GET /api/sites` and `GET /api/ranking`.
 
 Edit `data/sites/demo_sites.csv` to add reefs or fill `coral_cover_pct`, `refugia_50reefs_plus` (0/1), `connectivity` and `in_mpa` (0/1).
 
@@ -117,7 +117,7 @@ One Docker image (`Dockerfile`) serves the web app and the API from the same URL
 
 - Training heat metrics in GCBD come from CoRTAD; live inputs come from NOAA CRW. Both measure accumulated heat stress, but they are different products.
 - Satellite pixels are 5 km; individual reefs vary within a pixel. When a coastal reef's pixel is masked as land, the nearest ocean pixel within 0.25° is used.
-- ReefResilience reports "probability of high climate resilience" as 1 − P(bleaching ≥ 10%) under the past 12 weeks of heat stress. It is a near-term resistance estimate, not a long-term projection.
+- ReefSense reports "probability of high climate resilience" as 1 − P(bleaching ≥ 10%) under the past 12 weeks of heat stress. It is a near-term resistance estimate, not a long-term projection.
 - Labels mix three survey methods; severity-code labels are coarse (banded) values.
 - Non-heat conditions come from the reef's own GCBD survey when one exists at its location (every Asian survey site); otherwise they are borrowed from the nearest surveyed reefs.
 - The Asian sites are GCBD survey locations, so the model was trained on their past surveys. Their map values are predictions under current heat stress, not a test of the model; see the cross-validated results above for skill.
@@ -132,7 +132,7 @@ One Docker image (`Dockerfile`) serves the web app and the API from the same URL
 ```
 pipeline/   data download, feasibility check, training, scoring
 backend/    FastAPI service (sites, model metrics, ranking)
-reefresilience/  ReefResilience web app (React + TypeScript + Leaflet + Recharts)
+reefsense/  ReefSense web app (React + TypeScript + Leaflet + Recharts)
 frontend/   original React + Leaflet app
 data/       raw (git-ignored), processed outputs, demo site list
 Dockerfile, fly.toml, DEPLOY.md   deployment (one image: web app + API)

@@ -6,7 +6,7 @@ One Docker image serves the web app and the API from one URL, on one always-on [
 
 ```
 browser ── https://<app>.fly.dev ──> uvicorn (FastAPI, 1 worker)
-                                      ├── /            ReefSense web app (reefresilience/dist)
+                                      ├── /            ReefSense web app (reefsense/dist)
                                       ├── /api/*       scores, explanations, /api/predict (LightGBM)
                                       └── /api/tiles/* reef-area images (UNEP-WCMC, never as vectors)
 ```
@@ -52,7 +52,7 @@ Then replace the matching `>=` lines in `backend/requirements-deploy.txt` with t
 
 Then run the pre-deploy check. The Docker build runs the same check, so this is what the build will do:
 ```bash
-cd reefresilience && npm ci && npm run build && cd ..      # the check needs the built web app
+cd reefsense && npm ci && npm run build && cd ..      # the check needs the built web app
 python backend/check_deploy.py
 ```
 Expected output: `OK: 3,780 scored reefs; model region 'global'; Nusa Penida at 2 DHW -> resilience …`. A `Note:` about a missing optional file is fine. A `WARNING:` about versions means the pins above don't match.

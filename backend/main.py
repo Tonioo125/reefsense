@@ -1,9 +1,10 @@
 """ReefCast API: serves precomputed site scores, an adjustable restoration-priority ranking,
-and the ReefResilience contract (/api/reefs, /api/predict).
+and the ReefSense contract (/api/reefs, /api/predict, /api/reefs/{id}/photos for cached
+iNaturalist reef photos from pipeline/06_fetch_reef_photos.py).
 
 uvicorn main:app --reload --port 8000   (run from the backend/ folder)
 
-ReefResilience framing: the model predicts bleaching (>= 10% of colonies) under the past 12 weeks of
+ReefSense framing: the model predicts bleaching (>= 10% of colonies) under the past 12 weeks of
 satellite heat stress. "Probability of high climate resilience" is reported as 1 - P(bleaching), and
 feature contributions are sign-flipped so that positive values raise predicted resilience.
 """
@@ -32,15 +33,16 @@ from news import news_for_region
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = Path(os.getenv("REEFCAST_DATA", ROOT / "data/processed/sites_scored.json"))
+PHOTOS_PATH = Path(os.getenv("REEFCAST_PHOTOS", ROOT / "data/processed/reef_photos.json"))
 REEF_AREA_TILES = ROOT / "data/processed/reef_area_tiles"  # pipeline/05_reef_area_tiles.py
 HEAT_SERIES_PATH = ROOT / "data/processed/crw_heat_grid_series.json"  # pipeline/02b_fetch_crw_grid.py
 # Returned for map tiles with no reef in them, so the map doesn't log a 404 per empty ocean tile.
 EMPTY_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
 TILE_CACHE = {"Cache-Control": "public, max-age=86400"}
-# Built ReefResilience app (`npm run build` in reefresilience/). When present, it is served from this
+# Built ReefSense app (`npm run build` in reefsense/). When present, it is served from this
 # origin too (see the end of this file), so the deployed site needs no CORS or proxy.
-WEB_DIST = Path(os.getenv("REEFCAST_WEB_DIST", ROOT / "reefresilience/dist")).resolve()
+WEB_DIST = Path(os.getenv("REEFCAST_WEB_DIST", ROOT / "reefsense/dist")).resolve()
 # Comma-separated countries whose case-study reefs (data/sites/demo_sites.csv) get their news fetched at
 # startup and kept fresh, e.g. "Indonesia". Off by default so local runs do not call Mongabay on every reload.
 WARM_NEWS_COUNTRIES = {c.strip() for c in os.getenv("REEFCAST_WARM_NEWS", "").split(",") if c.strip()}
@@ -113,6 +115,21 @@ def load_data():
     return _cached()[0]
 
 
+def load_photos():
+    """Reef photo cache (pipeline/06_fetch_reef_photos.py). Optional: missing file = no photos."""
+    try:
+        mtime = PHOTOS_PATH.stat().st_mtime_ns
+    except FileNotFoundError:
+        return {"photos": {}, "reefs": {}}
+    return _read_photos(str(PHOTOS_PATH), mtime)
+
+
+@lru_cache(maxsize=1)
+def _read_photos(path, _mtime_ns):
+    """Parsed once per (path, mtime): the weekly sync rewrites the file in place."""
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
 def warm_caches():
     try:
         list_reefs()
@@ -172,7 +189,7 @@ def criterion_values(site, conn_range):
     return values
 
 
-# --- ReefResilience helpers ---------------------------------------------------
+# --- ReefSense helpers ---------------------------------------------------
 
 def category(resilience):
     if resilience >= 0.66:
@@ -280,6 +297,24 @@ def to_reef(site):
     }
 
 
+def to_photo(photo_id, record, km):
+    """GET /api/reefs/{id}/photos item."""
+    return {
+        "id": photo_id,
+        "url": record["url"],
+        "largeUrl": record["large_url"],
+        "width": record["width"],
+        "height": record["height"],
+        "attribution": record["attribution"],
+        "license": record["license"],
+        "photographer": record["photographer"],
+        "observationUrl": record["observation_url"],
+        "observedOn": record.get("observed_on"),
+        "taxon": record["taxon"],
+        "distanceKm": km,
+    }
+
+
 @lru_cache(maxsize=2)
 def _grid_series(mtime):
     return json.loads(HEAT_SERIES_PATH.read_text())
@@ -379,7 +414,7 @@ def ranking(
     return {"weights": weights, "sites": ranked}
 
 
-# --- ReefResilience endpoints ----------------------------------------------------
+# --- ReefSense endpoints ----------------------------------------------------
 
 @lru_cache(maxsize=1)
 def _reef_list_json(path, mtime_ns):
@@ -412,6 +447,16 @@ def get_explanation(reef_id: str):
         "summary": insight(reef["resilienceProbability"], contributions,
                            site["heat"].get("dhw_max_12w") or 0.0),
     }
+
+
+@app.get("/api/reefs/{reef_id}/photos")
+def get_photos(reef_id: str):
+    """Openly licensed iNaturalist coral photos within 10 km of the reef, in cache order ([] if none)."""
+    find_site(reef_id)
+    data = load_photos()
+    photos = data.get("photos", {})
+    return [to_photo(pid, photos[pid], km)
+            for pid, km in data.get("reefs", {}).get(reef_id, []) if pid in photos]
 
 
 @app.get("/api/reefs/{reef_id}/heat-history")

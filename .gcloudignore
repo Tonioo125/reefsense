@@ -17,8 +17,8 @@ node_modules/
 .DS_Store
 *:Zone.Identifier
 /frontend/
-/reefresilience/dist/
-/reefresilience/.vite/
+/reefsense/dist/
+/reefsense/.vite/
 
 # Raw downloads stay out (GCBD SQLite, UNEP-WCMC shapefile zip): large, and the WCMC source data must not
 # be made downloadable. The model's neighbour lookup only reads the survey table.

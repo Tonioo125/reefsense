@@ -77,7 +77,7 @@ Then replace the matching `>=` lines in `backend/requirements-deploy.txt` with t
 
 Run the same check the build runs:
 ```bash
-cd reefresilience && npm ci && npm run build && cd ..
+cd reefsense && npm ci && npm run build && cd ..
 python backend/check_deploy.py          # expect: OK: 3,780 scored reefs; model region 'global'; ...
 ```
 

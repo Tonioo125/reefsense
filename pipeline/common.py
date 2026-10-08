@@ -7,7 +7,12 @@ import pandas as pd
 import requests
 
 from config import (COLUMN_CANDIDATES, CRW_ERDDAP, FEATURE_CANDIDATES, GCBD_RAW, KELVIN_COLUMNS,
-                    REGIONS)
+                    REGIONS, SITE_FILES, USER_AGENT)
+
+EARTH_RADIUS_KM = 6371.0
+# Seconds to wait for a TCP connection. Kept short so an unreachable host fails fast, while the
+# per-call `timeout` (read timeout) stays long enough for slow ERDDAP queries.
+CONNECT_TIMEOUT_S = 15
 
 EXPOSURE_CODES = {"sheltered": 0, "sometimes": 1, "exposed": 2}
 
@@ -76,7 +81,7 @@ def erddap_csv(query, timeout=180, attempts=3):
     url = f"{CRW_ERDDAP}.csv?{query}"
     for attempt in range(attempts):
         try:
-            resp = requests.get(url, timeout=timeout)
+            resp = requests.get(url, timeout=(CONNECT_TIMEOUT_S, timeout))
             resp.raise_for_status()
             # ERDDAP CSVs put a units row directly under the header; drop it.
             return pd.read_csv(io.StringIO(resp.text), skiprows=[1], parse_dates=["time"])
@@ -84,6 +89,54 @@ def erddap_csv(query, timeout=180, attempts=3):
             print(f"  attempt {attempt + 1} failed: {err}", flush=True)
             time.sleep(3 * (attempt + 1))
     return None
+
+
+def get_json(url, params=None, attempts=4, timeout=60):
+    """GET a JSON API with retries (timeouts, connection errors, 429, 5xx); None if every attempt fails.
+
+    Backoff is 2, 4, 8 s, or the server's Retry-After when it sends one.
+    """
+    for attempt in range(attempts):
+        wait = 2 ** (attempt + 1)
+        try:
+            resp = requests.get(url, params=params, timeout=(CONNECT_TIMEOUT_S, timeout),
+                                headers={"User-Agent": USER_AGENT})
+            if resp.status_code == 429 or resp.status_code >= 500:
+                retry_after = resp.headers.get("Retry-After", "")
+                if retry_after.isdigit():
+                    wait = int(retry_after)
+                raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
+            resp.raise_for_status()
+            return resp.json()
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as err:
+            status = getattr(getattr(err, "response", None), "status_code", None)
+            if status is not None and status < 500 and status != 429:
+                print(f"  request failed: {err}", flush=True)
+                return None  # other 4xx: retrying will not help
+            print(f"  attempt {attempt + 1} failed: {err}", flush=True)
+        except ValueError as err:  # body was not JSON
+            print(f"  attempt {attempt + 1} failed: invalid JSON ({err})", flush=True)
+        if attempt + 1 < attempts:
+            time.sleep(wait)
+    return None
+
+
+def load_site_list():
+    """Every site the app uses (config.SITE_FILES); same rules as 04_score_sites.load_sites."""
+    lists = [pd.read_csv(path) for path in SITE_FILES if path.exists()]
+    sites = pd.concat(lists, ignore_index=True)
+    dupes = sites["site_id"][sites["site_id"].duplicated()].unique()
+    if len(dupes):
+        raise SystemExit(f"Duplicate site_id across site lists: {list(dupes)[:5]}")
+    return sites
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Great-circle distance in km; accepts scalars or numpy arrays (broadcast)."""
+    lat1, lon1, lat2, lon2 = (np.radians(np.asarray(v, dtype=float)) for v in (lat1, lon1, lat2, lon2))
+    a = (np.sin((lat2 - lat1) / 2) ** 2
+         + np.cos(lat1) * np.cos(lat2) * np.sin((lon2 - lon1) / 2) ** 2)
+    return 2 * EARTH_RADIUS_KM * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
 
 
 def to_json_safe(value):

@@ -1,5 +1,6 @@
 import { History } from "lucide-react";
 import { BLEACHING_EVENTS, FEW_SURVEYS, eventForYear } from "@/lib/history";
+import { RESILIENCE } from "@/lib/palette";
 import { formatPercent } from "@/lib/reef";
 import type { HistoryYear } from "@/types/reef";
 
@@ -17,7 +18,10 @@ export default function HistoryYearPanel({ data, source }: { data: HistoryYear |
       <h2 className="mt-1 font-display text-3xl font-medium tabular-nums text-foreground">{data.year}</h2>
 
       {event && (
-        <div className="mt-3 rounded-md border border-[#e9c3b9] bg-[#fbf1ee] px-3 py-2.5 text-xs leading-relaxed text-[#6e2a1f]">
+        <div
+          className="mt-3 rounded-md border border-resilience-low/30 px-3 py-2.5 text-xs leading-relaxed"
+          style={{ background: RESILIENCE.Low.soft, color: RESILIENCE.Low.text }}
+        >
           <p className="font-semibold">{event.name}</p>
           <p>{event.note}</p>
         </div>

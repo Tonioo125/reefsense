@@ -90,6 +90,32 @@ export interface ReefExplanation {
   summary: string;
 }
 
+/** GET /api/reefs/{id}/photos item: an openly licensed iNaturalist coral photo near the reef. */
+export interface ReefPhoto {
+  /** iNaturalist photo id. */
+  id: string;
+  /** Medium image (longest side up to 500 px). */
+  url: string;
+  /** Large image (longest side up to 1024 px). */
+  largeUrl: string;
+  /** Pixel size of the medium image. */
+  width: number;
+  height: number;
+  /** Attribution string as published by iNaturalist, e.g. "(c) Name, some rights reserved (CC BY)". */
+  attribution: string;
+  /** Creative Commons licence code, e.g. "cc-by-nc". */
+  license: string;
+  photographer: string;
+  /** iNaturalist observation page the photo belongs to. */
+  observationUrl: string;
+  /** Observation date (YYYY-MM-DD), when recorded. */
+  observedOn: string | null;
+  /** Identified taxon name, e.g. "Acropora" (null if the observation has no taxon name). */
+  taxon: string | null;
+  /** Distance from the reef to the observation, km. */
+  distanceKm: number;
+}
+
 /** POST /api/predict request body: score a location under a heat-stress scenario. */
 export interface PredictRequest {
   latitude: number;

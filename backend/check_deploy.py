@@ -16,7 +16,7 @@ REQUIRED = {
     "scored reefs (pipeline/04_score_sites.py)": main.DATA_PATH,
     "trained model (pipeline/03_train_bleaching.py)": MODEL_PATH,
     "GCBD survey table (pipeline/01b_import_gcbd_sqlite.py)": GCBD_RAW,
-    "built web app (npm run build in reefresilience/)": main.WEB_DIST / "index.html",
+    "built web app (npm run build in reefsense/)": main.WEB_DIST / "index.html",
 }
 OPTIONAL = {
     "daily heat series for the heat chart (pipeline/02b_fetch_crw_grid.py)": main.HEAT_SERIES_PATH,

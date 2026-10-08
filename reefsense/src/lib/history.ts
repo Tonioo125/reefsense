@@ -1,3 +1,5 @@
+import { PALETTE, RESILIENCE } from "@/lib/palette";
+
 /**
  * Bleaching history: the mass bleaching events of the survey era and the colour scale for observed
  * bleaching on the replay map.
@@ -38,11 +40,12 @@ export const FEW_SURVEYS = 100;
 
 /** Sequential scale for observed % of colonies bleached: one hue, light (none) to dark (severe). */
 export const BLEACH_STOPS: { pct: number; color: string }[] = [
+  // The two light stops are derived tints between coralSoft and coral.
   { pct: 0, color: "#FDE7E1" },
   { pct: 10, color: "#FFB49F" },
-  { pct: 30, color: "#FF8066" },
-  { pct: 50, color: "#D95C5C" },
-  { pct: 75, color: "#8D3C3C" },
+  { pct: 30, color: PALETTE.coral },
+  { pct: 50, color: RESILIENCE.Low.base },
+  { pct: 75, color: RESILIENCE.Low.text },
 ];
 
 export const BLEACH_GRADIENT = `linear-gradient(to right, ${BLEACH_STOPS.map(

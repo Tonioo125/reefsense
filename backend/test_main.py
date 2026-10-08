@@ -69,6 +69,60 @@ def test_predict_at_current_heat_reproduces_the_map_score(client):
         assert res.json()["probability"] == pytest.approx(reef["resilienceProbability"], abs=0.01), reef["id"]
 
 
+def photo_record(n):
+    return {"url": f"https://img.test/{n}/medium.jpg", "large_url": f"https://img.test/{n}/large.jpg",
+            "width": 500, "height": 375, "attribution": f"(c) User {n}, some rights reserved (CC BY)",
+            "license": "cc-by", "photographer": f"User {n}",
+            "observation_url": f"https://www.inaturalist.org/observations/{n}",
+            "observed_on": "2025-01-0" + str(n), "taxon": "Acropora"}
+
+
+@pytest.fixture
+def photos_file(tmp_path, monkeypatch):
+    path = tmp_path / "reef_photos.json"
+    path.write_text(json.dumps({
+        "photos": {"2": photo_record(2), "1": photo_record(1)},
+        # "9" is referenced but missing from photos: skipped.
+        "reefs": {"NP01": [["2", 0.4], ["9", 1.0], ["1", 3.2]]},
+    }))
+    monkeypatch.setattr(main, "PHOTOS_PATH", path)
+    return path
+
+
+@needs_data
+def test_photos_are_camel_case_in_file_order(client, photos_file):
+    res = client.get("/api/reefs/NP01/photos")
+    assert res.status_code == 200
+    body = res.json()
+    assert [p["id"] for p in body] == ["2", "1"]
+    assert body[0] == {
+        "id": "2", "url": "https://img.test/2/medium.jpg", "largeUrl": "https://img.test/2/large.jpg",
+        "width": 500, "height": 375, "attribution": "(c) User 2, some rights reserved (CC BY)",
+        "license": "cc-by", "photographer": "User 2",
+        "observationUrl": "https://www.inaturalist.org/observations/2",
+        "observedOn": "2025-01-02", "taxon": "Acropora", "distanceKm": 0.4,
+    }
+
+
+@needs_data
+def test_photos_empty_for_scored_reef_without_photos(client, photos_file):
+    other = next(r["id"] for r in client.get("/api/reefs").json() if r["id"] != "NP01")
+    res = client.get(f"/api/reefs/{other}/photos")
+    assert res.status_code == 200 and res.json() == []
+
+
+@needs_data
+def test_photos_unknown_reef_is_404(client, photos_file):
+    assert client.get("/api/reefs/NOPE/photos").status_code == 404
+
+
+@needs_data
+def test_photos_missing_file_is_empty(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "PHOTOS_PATH", tmp_path / "absent.json")
+    res = client.get("/api/reefs/NP01/photos")
+    assert res.status_code == 200 and res.json() == []
+
+
 @needs_data
 def test_predict_validates_input(client):
     assert client.post("/api/predict", json={"latitude": 200, "longitude": 0, "dhwMax12w": 1}).status_code == 422

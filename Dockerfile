@@ -1,13 +1,13 @@
-# ReefCast: one image serving the ReefResilience web app and the FastAPI backend on the same origin.
+# ReefCast: one image serving the ReefSense web app and the FastAPI backend on the same origin.
 # Deployment guide: DEPLOY.md. Build from the repository root, in the folder that holds the git-ignored
 # model, survey table and tiles (see .dockerignore):  docker build -t reefcast .
 
 # --- 1. Web app ---------------------------------------------------------------------
 FROM node:20-slim AS web
 WORKDIR /web
-COPY reefresilience/package.json reefresilience/package-lock.json ./
+COPY reefsense/package.json reefsense/package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY reefresilience/ ./
+COPY reefsense/ ./
 # Empty = same-origin /api (the backend below serves the app). Overrides any value in a local .env file.
 ENV VITE_API_BASE_URL=""
 RUN npm run build
@@ -32,7 +32,7 @@ RUN pip install -r backend/requirements-deploy.txt
 COPY pipeline/ pipeline/
 COPY data/ data/
 COPY backend/ backend/
-COPY --from=web /web/dist reefresilience/dist
+COPY --from=web /web/dist reefsense/dist
 
 # Fail the build, not the live site, if the model, scored data or web app is missing or will not load.
 WORKDIR /app/backend
