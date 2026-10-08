@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useScrolledPast } from "@/hooks/useScroll";
 import { cn } from "@/lib/utils";
@@ -19,21 +19,44 @@ const FOCUS_RING =
 
 function StatusIndicator() {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-2 py-1 sm:px-3">
+    <div className="flex items-center gap-2 rounded-full border border-border bg-white/80 px-2.5 py-1 shadow-soft sm:px-3">
       <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-ocean-aqua opacity-60 motion-safe:animate-ping" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ocean-blue" />
+        <span className="absolute inline-flex h-full w-full rounded-full bg-brand opacity-70 motion-safe:animate-ping" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
       </span>
-      <span className="whitespace-nowrap text-[11px] font-medium text-secondary-foreground sm:text-xs">
+      <span className="whitespace-nowrap text-[11px] font-medium text-foreground sm:text-xs">
         Global Reef Dataset
       </span>
     </div>
   );
 }
 
+/** Where the sliding highlight sits: the active link's box inside the link row. */
+function useIndicator(active: string) {
+  const items = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [box, setBox] = useState<{ left: number; width: number } | null>(null);
+  const measure = useCallback(() => {
+    const el = items.current[active];
+    setBox(el ? { left: el.offsetLeft, width: el.offsetWidth } : null);
+  }, [active]);
+
+  useLayoutEffect(measure, [measure]);
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    // Link widths change once the web font arrives.
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  return { items, box };
+}
+
 export default function Navbar({ active, onNavigate }: NavbarProps) {
   const [open, setOpen] = useState(false);
-  const scrolled = useScrolledPast(12);
+  const scrolled = useScrolledPast(24);
+  // At the top of the page the bar floats, chrome-less, inside the photo frame.
+  const floating = !scrolled && !open;
+  const { items, box } = useIndicator(active);
   const go = (id: string) => {
     onNavigate(id);
     setOpen(false);
@@ -50,89 +73,122 @@ export default function Navbar({ active, onNavigate }: NavbarProps) {
   }, [open]);
 
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 ease-out",
-        scrolled || open
-          ? "border-border/70 bg-background/85 shadow-soft backdrop-blur-md"
-          : "border-transparent bg-transparent",
-      )}
-    >
-      <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-6">
-        <button
-          onClick={() => go("top")}
-          className={cn("flex items-center gap-2.5 rounded-md", FOCUS_RING)}
-          aria-label="ReefSense home"
-        >
-          <img
-            src="/logo-mark.png"
-            alt="ReefSense"
-            width={297}
-            height={184}
-            className="h-8 w-auto shrink-0"
-            decoding="async"
-          />
-          <span className="font-display text-[19px] font-medium tracking-tight text-foreground max-[359px]:hidden">
-            ReefSense
-          </span>
-        </button>
-
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => go(item.id)}
-              aria-current={active === item.id ? "true" : undefined}
-              className={cn(
-                "relative rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground",
-                FOCUS_RING,
-                active === item.id ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {item.label}
-              {active === item.id && (
-                <span className="absolute inset-x-3 -bottom-[13px] h-px bg-primary" aria-hidden="true" />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <StatusIndicator />
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2 pt-2 sm:px-3 sm:pt-3">
+      <div
+        className={cn(
+          "pointer-events-auto mx-auto max-w-[1240px] border transition-[margin,padding,background-color,border-color,box-shadow,border-radius] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          floating
+            ? "mt-2 rounded-[22px] border-transparent bg-transparent px-4 sm:mt-3 sm:px-8"
+            : "mt-0 rounded-2xl border-border/80 bg-white px-3 shadow-[0_16px_40px_-24px_rgba(10,37,64,0.35)] sm:px-5",
+        )}
+      >
+        <div className="relative flex h-16 items-center justify-between gap-3">
           <button
-            onClick={() => setOpen((v) => !v)}
-            className={cn("rounded-md p-2 text-foreground hover:bg-secondary md:hidden", FOCUS_RING)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            aria-controls="mobile-nav"
+            onClick={() => go("top")}
+            className={cn("flex items-center gap-2.5 rounded-md motion-safe:animate-drop-in", FOCUS_RING)}
+            style={{ animationDelay: "350ms" }}
+            aria-label="ReefSense home"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <img
+              src="/logo-mark.png"
+              alt="ReefSense"
+              width={297}
+              height={184}
+              className="h-7 w-auto shrink-0"
+              decoding="async"
+            />
+            <span
+              className="font-display text-[19px] font-medium tracking-tight text-foreground max-[359px]:hidden"
+            >
+              ReefSense
+            </span>
           </button>
-        </div>
-      </div>
 
-      {open && (
-        <nav
-          id="mobile-nav"
-          className="border-t border-border bg-background px-4 py-2 sm:px-6 md:hidden"
-          aria-label="Mobile"
-        >
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => go(item.id)}
-              aria-current={active === item.id ? "true" : undefined}
+          <nav
+            className="absolute left-1/2 hidden -translate-x-1/2 items-center md:flex"
+            aria-label="Primary"
+          >
+            <div
               className={cn(
-                "block w-full rounded-md px-2 py-2.5 text-left text-sm hover:bg-secondary hover:text-foreground",
-                FOCUS_RING,
-                active === item.id ? "text-foreground" : "text-muted-foreground",
+                "relative flex items-center gap-1 rounded-full border p-1 transition-[background-color,border-color,box-shadow] duration-500",
+                floating ? "border-border/80 bg-white/90 shadow-soft" : "border-transparent",
               )}
             >
-              {item.label}
+              {box && (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute inset-y-1 rounded-full border transition-[left,width,background-color,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                    "border-border bg-secondary",
+                  )}
+                  style={{ left: box.left, width: box.width }}
+                />
+              )}
+              {NAV_ITEMS.map((item, i) => (
+                <button
+                  key={item.id}
+                  ref={(el) => {
+                    items.current[item.id] = el;
+                  }}
+                  onClick={() => go(item.id)}
+                  aria-current={active === item.id ? "true" : undefined}
+                  className={cn(
+                    "relative rounded-full px-4 py-1.5 text-sm transition-colors duration-300 motion-safe:animate-drop-in",
+                    FOCUS_RING,
+                    active === item.id ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                  style={{ animationDelay: `${450 + i * 70}ms` }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          <div
+            className="flex items-center gap-2 motion-safe:animate-drop-in sm:gap-3"
+            style={{ animationDelay: "700ms" }}
+          >
+            <StatusIndicator />
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className={cn(
+                "rounded-full p-2 md:hidden",
+                "text-foreground hover:bg-secondary",
+                FOCUS_RING,
+              )}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+            >
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-          ))}
-        </nav>
-      )}
+          </div>
+        </div>
+
+        {open && (
+          <nav
+            id="mobile-nav"
+            className="border-t border-border pb-2 pt-1 animate-slide-up md:hidden"
+            aria-label="Mobile"
+          >
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => go(item.id)}
+                aria-current={active === item.id ? "true" : undefined}
+                className={cn(
+                  "block w-full rounded-xl px-3 py-3 text-left text-[15px] hover:bg-secondary",
+                  FOCUS_RING,
+                  active === item.id ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
+      </div>
     </header>
   );
 }

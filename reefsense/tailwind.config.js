@@ -51,14 +51,19 @@ export default {
           DEFAULT: "rgb(var(--card) / <alpha-value>)",
           foreground: "rgb(var(--card-foreground) / <alpha-value>)",
         },
+        // The hero's own colours: used on the photo only.
         ocean: {
-          blue: PALETTE.oceanBlue,
-          aqua: PALETTE.aqua,
-          sky: PALETTE.skyBlue,
+          abyss: PALETTE.abyss,
+          foam: PALETTE.foam,
+          surf: PALETTE.surf,
+          blue: PALETTE.ocean,
+          aqua: PALETTE.surf,
         },
+        ink: PALETTE.ink,
         coral: {
           DEFAULT: PALETTE.coral,
           soft: PALETTE.coralSoft,
+          text: PALETTE.coralText,
         },
         resilience: {
           high: RESILIENCE.High.base,
@@ -72,9 +77,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(22, 78, 90, 0.04), 0 10px 30px -18px rgba(22, 78, 90, 0.18)",
-        panel: "-16px 0 40px -32px rgba(22, 78, 90, 0.25)",
-        float: "0 2px 6px rgba(22, 78, 90, 0.05), 0 12px 28px -20px rgba(22, 78, 90, 0.25)",
+        soft: "0 1px 2px rgba(10, 37, 64, 0.04), 0 10px 30px -18px rgba(10, 37, 64, 0.2)",
+        panel: "-16px 0 40px -32px rgba(10, 37, 64, 0.25)",
+        float: "0 2px 6px rgba(10, 37, 64, 0.05), 0 16px 36px -22px rgba(10, 37, 64, 0.3)",
       },
       keyframes: {
         "fade-in": {
@@ -93,12 +98,66 @@ export default {
           from: { opacity: "0", transform: "translateY(16px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // The frame opens like an aperture while the photo settles from depth.
+        "frame-open": {
+          from: { clipPath: "inset(7% 9% 7% 9% round 48px)" },
+          to: { clipPath: "inset(0% 0% 0% 0% round 0px)" },
+        },
+        "hero-settle": {
+          from: { transform: "scale(1.22)", filter: "blur(10px) saturate(0.6) brightness(0.7)" },
+          to: { transform: "scale(1)", filter: "blur(0) saturate(1) brightness(1)" },
+        },
+        // Slow aerial drift once settled.
+        drift: {
+          "0%": { transform: "scale(1.04) translate3d(-1%, 0.5%, 0)" },
+          "100%": { transform: "scale(1.1) translate3d(1.5%, -1%, 0)" },
+        },
+        "word-rise": {
+          from: { transform: "translate3d(0, 115%, 0) rotate(6deg)", opacity: "0" },
+          to: { transform: "translate3d(0, 0, 0) rotate(0deg)", opacity: "1" },
+        },
+        "blur-in": {
+          from: { opacity: "0", filter: "blur(12px)", transform: "translate3d(0, 14px, 0)" },
+          to: { opacity: "1", filter: "blur(0)", transform: "translate3d(0, 0, 0)" },
+        },
+        "drop-in": {
+          from: { opacity: "0", transform: "translate3d(0, -14px, 0)" },
+          to: { opacity: "1", transform: "translate3d(0, 0, 0)" },
+        },
+        caustic: {
+          from: { transform: "translate3d(0, 0, 0)" },
+          to: { transform: "translate3d(calc(var(--tile) * -1), calc(var(--tile) * -1), 0)" },
+        },
+        "caustic-reverse": {
+          from: { transform: "translate3d(calc(var(--tile) * -1), 0, 0)" },
+          to: { transform: "translate3d(0, calc(var(--tile) * -1), 0)" },
+        },
+        sheen: {
+          from: { transform: "translateX(-120%) skewX(-18deg)" },
+          to: { transform: "translateX(220%) skewX(-18deg)" },
+        },
+        // A drop of light falling down the scroll cue.
+        sink: {
+          "0%": { transform: "translateY(-100%)", opacity: "0" },
+          "30%": { opacity: "1" },
+          "100%": { transform: "translateY(260%)", opacity: "0" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out both",
         "slide-up": "slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
         "sheet-up": "sheet-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
         "hero-in": "hero-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "frame-open": "frame-open 1.6s cubic-bezier(0.16, 1, 0.3, 1) backwards",
+        "hero-settle": "hero-settle 2.8s cubic-bezier(0.16, 1, 0.3, 1) backwards",
+        drift: "drift 38s ease-in-out 2.8s infinite alternate both",
+        "word-rise": "word-rise 1.15s cubic-bezier(0.16, 1, 0.3, 1) backwards",
+        "blur-in": "blur-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) backwards",
+        "drop-in": "drop-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards",
+        caustic: "caustic 48s linear infinite",
+        "caustic-reverse": "caustic-reverse 64s linear infinite",
+        sheen: "sheen 1.4s cubic-bezier(0.16, 1, 0.3, 1) both",
+        sink: "sink 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite",
       },
     },
   },

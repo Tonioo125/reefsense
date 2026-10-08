@@ -37,17 +37,19 @@ function contrast(a: string, b: string): number {
 describe("palette tokens", () => {
   it("mirrors the palette as RGB CSS variables", () => {
     const expected: Record<string, string> = {
-      background: PALETTE.iceOcean,
-      foreground: PALETTE.deepTeal,
-      primary: PALETTE.brightTeal,
-      "primary-strong": PALETTE.tealStrong,
-      secondary: PALETTE.softAqua,
-      muted: PALETTE.softAqua,
-      "muted-foreground": PALETTE.seaGray,
-      "muted-strong": PALETTE.seaGrayStrong,
-      brand: PALETTE.tealStrong,
-      border: PALETTE.border,
-      ring: PALETTE.brightTeal,
+      background: PALETTE.ground,
+      foreground: PALETTE.ink,
+      card: PALETTE.white,
+      primary: PALETTE.ocean,
+      "primary-foreground": PALETTE.white,
+      "primary-strong": PALETTE.oceanStrong,
+      secondary: PALETTE.shelf,
+      muted: PALETTE.shelf,
+      "muted-foreground": PALETTE.slate,
+      "muted-strong": PALETTE.slateStrong,
+      brand: PALETTE.reef,
+      border: PALETTE.line,
+      ring: PALETTE.reef,
     };
     for (const [name, hex] of Object.entries(expected)) {
       expect(cssVar(name), name).toBe(channels(hex).join(" "));
@@ -56,9 +58,9 @@ describe("palette tokens", () => {
 
   it("uses the resilience colours everywhere", () => {
     expect(CATEGORY_COLORS).toEqual(RESILIENCE);
-    expect(CATEGORY_COLORS.High.base).toBe("#2E9B72");
-    expect(CATEGORY_COLORS.Medium.base).toBe("#E0B84C");
-    expect(CATEGORY_COLORS.Low.base).toBe("#D95C5C");
+    expect(CATEGORY_COLORS.High.base).toBe("#1E9E8F");
+    expect(CATEGORY_COLORS.Medium.base).toBe("#E3B55B");
+    expect(CATEGORY_COLORS.Low.base).toBe("#E2593B");
   });
 
   it("maps stressor levels onto the resilience tones", () => {
@@ -70,11 +72,15 @@ describe("palette tokens", () => {
 
   it("keeps text pairs at WCAG AA contrast", () => {
     const pairs: [string, string, string][] = [
-      ["seaGrayStrong on iceOcean", PALETTE.seaGrayStrong, PALETTE.iceOcean],
-      ["seaGrayStrong on softAqua", PALETTE.seaGrayStrong, PALETTE.softAqua],
-      ["tealStrong on white", PALETTE.tealStrong, PALETTE.white],
-      ["deepTeal on iceOcean", PALETTE.deepTeal, PALETTE.iceOcean],
-      ["white on tealStrong", PALETTE.white, PALETTE.tealStrong],
+      ["ink on ground", PALETTE.ink, PALETTE.ground],
+      ["ink on white", PALETTE.ink, PALETTE.white],
+      ["slate on white", PALETTE.slate, PALETTE.white],
+      ["slate on shelf", PALETTE.slate, PALETTE.shelf],
+      ["slateStrong on ground", PALETTE.slateStrong, PALETTE.ground],
+      ["reef on white", PALETTE.reef, PALETTE.white],
+      ["reef on ground", PALETTE.reef, PALETTE.ground],
+      ["white on ocean", PALETTE.white, PALETTE.ocean],
+      ["coralText on coralSoft", PALETTE.coralText, PALETTE.coralSoft],
       ...(Object.keys(RESILIENCE) as (keyof typeof RESILIENCE)[]).map(
         (c): [string, string, string] => [`${c} text on soft`, RESILIENCE[c].text, RESILIENCE[c].soft],
       ),

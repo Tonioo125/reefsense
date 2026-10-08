@@ -44,7 +44,7 @@ export default function HistoryReplay({ years, year, onYearChange, playing, onPl
   };
 
   return (
-    <div className="absolute inset-x-3 bottom-6 z-[1000] mx-auto max-w-3xl rounded-lg border border-border bg-card/95 p-3 shadow-float backdrop-blur-md sm:inset-x-4 sm:p-4">
+    <div className="absolute inset-x-3 bottom-6 z-[1000] mx-auto max-w-3xl rounded-lg border border-border bg-card/95 p-3 shadow-float sm:inset-x-4 sm:p-4">
       <div className="flex items-start gap-3">
         <button
           type="button"
@@ -103,7 +103,7 @@ export default function HistoryReplay({ years, year, onYearChange, playing, onPl
                 className={cn("block w-full rounded-t-[3px] transition-opacity", !selected && "opacity-60 group-hover:opacity-90")}
                 style={{
                   height: `${Math.max((y.bleachedShare / maxShare) * 100, 4)}%`,
-                  background: selected ? PALETTE.deepTeal : inEvent ? RESILIENCE.Low.base : PALETTE.seaGray,
+                  background: selected ? PALETTE.ink : inEvent ? RESILIENCE.Low.base : PALETTE.current,
                   opacity: y.surveys < FEW_SURVEYS && !selected ? 0.3 : undefined,
                 }}
               />

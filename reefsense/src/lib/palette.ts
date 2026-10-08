@@ -4,34 +4,39 @@
  * components that need hex in SVG/canvas attributes. src/index.css mirrors these as RGB
  * CSS variables; src/lib/palette.test.ts keeps the two in sync.
  *
- * Derived shades (not in the brand spec; added for WCAG AA text contrast):
- *  - tealStrong #007A7A: Bright Teal darkened, 5.2:1 on white. Small teal text, links,
- *    hover/pressed states, filled controls with labels under 14px.
- *  - seaGrayStrong #4E727A: Sea Gray darkened, 5.0:1 on Ice Ocean. Muted text under 14px.
- *  - border #D1EFEF: Bright Teal at 18% on white. Thin aqua-tinted borders.
- *  - RESILIENCE soft/text: 16–18% tints and 35% darkened shades of the resilience colours
- *    (Medium uses Deep Teal text) for pills and signed values.
+ * Light world around a deep-water hero: the page is daylight on the surface, the hero is the
+ * reef below it.
+ *  - ground: the page. white: cards and panels. shelf: muted fills. line: hairline borders.
+ *  - ink: primary text, the deep navy of the hero. slate: secondary text at 14px and up;
+ *    slateStrong: small text (>= 4.5:1 on white and shelf).
+ *  - ocean: filled actions (white text). reef: text-safe accent for links and italic accents.
+ *  - coral: heat and risk fills; coralText for coral words.
+ *  - abyss, foam, surf: the hero's own colours, used on the photo only.
  * Import-free on purpose: tailwind.config.js loads this file directly.
  */
 export const PALETTE = {
-  iceOcean: "#F5FCFC",
-  softAqua: "#E6F8F8",
-  brightTeal: "#00A6A6",
-  tealStrong: "#007A7A",
-  oceanBlue: "#2196C8",
-  aqua: "#4DD9D9",
-  skyBlue: "#7DDFF2",
-  deepTeal: "#164E5A",
-  seaGray: "#668B93",
-  seaGrayStrong: "#4E727A",
-  coral: "#FF8066",
-  coralSoft: "#FFE5DE",
-  border: "#D1EFEF",
+  ground: "#F3F8FB",
   white: "#FFFFFF",
+  shelf: "#E7F0F6",
+  line: "#D3E2EC",
+  current: "#9DBBD0",
+  ink: "#0A2540",
+  slate: "#4A6378",
+  slateStrong: "#3B5468",
+  ocean: "#0E5E8C",
+  oceanStrong: "#0A4A70",
+  reef: "#0B7285",
+  coral: "#E8603F",
+  coralSoft: "#FDECE6",
+  coralText: "#B2432A",
+  abyss: "#03121F",
+  foam: "#EAF5FB",
+  surf: "#5CDBE8",
 } as const;
 
+/** Reef teal (high), sand (medium), coral (low): the data scale shares the page's world. */
 export const RESILIENCE = {
-  High: { base: "#2E9B72", soft: "#DEEFE8", text: "#1E654A" },
-  Medium: { base: "#E0B84C", soft: "#F9F2DF", text: "#164E5A" },
-  Low: { base: "#D95C5C", soft: "#F9E5E5", text: "#8D3C3C" },
+  High: { base: "#1E9E8F", soft: "#DDF1EE", text: "#14655C" },
+  Medium: { base: "#E3B55B", soft: "#FAF1DE", text: "#6B4E12" },
+  Low: { base: "#E2593B", soft: "#FCE6DF", text: "#9A3A22" },
 } as const;

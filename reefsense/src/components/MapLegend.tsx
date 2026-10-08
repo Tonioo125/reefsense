@@ -7,6 +7,9 @@ import {
   REEF_AREA_COLOR,
   categoryRangeLabel,
 } from "@/lib/reef";
+import { useState } from "react";
+import { ChevronDown, Layers } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import type { MapColorBy } from "@/types/reef";
 
@@ -29,12 +32,40 @@ export default function MapLegend({
   showReefArea,
   onShowReefAreaChange,
 }: MapLegendProps) {
+  // Open by default only on large screens; elsewhere a small pill until asked for, so it never covers the toolbar.
+  const roomy = useMediaQuery("(min-width: 1024px) and (min-height: 820px)");
+  const [open, setOpen] = useState<boolean | null>(null);
+  const expanded = open ?? roomy;
+
   return (
-    <div className="absolute bottom-6 left-3 z-[1000] w-[13.5rem] rounded-lg border border-border bg-card/90 p-3 shadow-float backdrop-blur-md sm:left-4">
+    <div
+      className={cn(
+        "absolute bottom-6 left-3 z-[1000] rounded-xl border border-border bg-card/95 shadow-float sm:left-4",
+        expanded ? "w-[13.5rem] p-2.5" : "p-1",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(!expanded)}
+        aria-expanded={expanded}
+        aria-controls="map-legend-body"
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-strong transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="flex items-center gap-1.5">
+          <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+          Legend
+        </span>
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 transition-transform duration-300", expanded && "rotate-180")}
+          aria-hidden="true"
+        />
+      </button>
+      {expanded && (
+      <div id="map-legend-body" className="mt-2 px-0.5 animate-fade-in">
       <div
         role="group"
         aria-label="Colour reefs by"
-        className="mb-3 grid grid-cols-2 gap-0.5 rounded-md bg-muted p-0.5"
+        className="mb-3 grid grid-cols-2 gap-0.5 rounded-lg bg-background/60 p-0.5"
       >
         {LAYERS.map((layer) => (
           <button
@@ -45,7 +76,7 @@ export default function MapLegend({
             className={cn(
               "rounded px-2 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               colorBy === layer.value
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-secondary text-foreground shadow-sm"
                 : "text-muted-strong hover:text-foreground",
             )}
           >
@@ -56,7 +87,7 @@ export default function MapLegend({
 
       {colorBy === "resilience" ? (
         <>
-          <p className="mb-2 text-[11px] font-medium uppercase leading-snug tracking-wide text-muted-strong">
+          <p className="mb-2 text-xs font-semibold leading-snug text-foreground">
             Predicted probability of high resilience
           </p>
           <ul className="space-y-1.5">
@@ -121,6 +152,8 @@ export default function MapLegend({
           </span>
         </span>
       </label>
+      </div>
+      )}
     </div>
   );
 }

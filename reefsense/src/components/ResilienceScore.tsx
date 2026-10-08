@@ -19,9 +19,7 @@ export default function ResilienceScore({ probability, category }: ResilienceSco
   const shown = useCountUp(probability);
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
-        Climate Resilience
-      </p>
+      <h3 className="text-sm font-semibold text-foreground">Climate Resilience</h3>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="font-display text-6xl font-medium leading-none tracking-tight tabular-nums text-foreground">
           <span aria-hidden="true">{formatPercent(shown)}</span>

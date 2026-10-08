@@ -34,8 +34,12 @@ import type {
 function PanelEmptyState() {
   return (
     <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center lg:py-16">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-        <MapPin className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
+      {/* A slow sonar ping: the panel is listening for a selection. */}
+      <div className="relative flex h-14 w-14 items-center justify-center">
+        <span aria-hidden="true" className="absolute inset-0 rounded-full border border-primary/40 motion-safe:animate-[ping_2.8s_cubic-bezier(0,0,0.2,1)_infinite]" />
+        <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-border bg-secondary">
+          <MapPin className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
+        </span>
       </div>
       <p className="mt-4 text-sm font-medium text-foreground">Select a reef</p>
       <p className="mt-1.5 max-w-[16rem] text-sm leading-relaxed text-muted-foreground">
@@ -99,7 +103,7 @@ function BottomSheet({ open, onClose, labelledBy, initialFocusRef, children }: B
         aria-hidden="true"
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-[55] bg-foreground/20 transition-opacity duration-300 motion-reduce:transition-none",
+          "fixed inset-0 z-[55] bg-ink/25 transition-opacity duration-300 motion-reduce:transition-none",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -110,7 +114,7 @@ function BottomSheet({ open, onClose, labelledBy, initialFocusRef, children }: B
         aria-labelledby={labelledBy}
         onKeyDown={trapFocus}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[60] max-h-[82vh] overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-[0_-16px_40px_-24px_rgba(22,78,90,0.3)] duration-300 motion-reduce:transition-none",
+          "fixed inset-x-0 bottom-0 z-[60] max-h-[82vh] overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-[0_-16px_40px_-24px_rgba(10,37,64,0.3)] duration-300 motion-reduce:transition-none",
           // Visibility flips immediately on open (so focus can move in) and
           // only after the slide-out on close.
           open
@@ -291,19 +295,14 @@ export default function Explore() {
 
   return (
     <>
-      <Hero
-        onExplore={() => scrollToSection("explore")}
-        reefCount={loading || error ? null : reefs.length}
-        surveyCount={metrics?.n_rows ?? null}
-        predictorCount={metrics?.features.length ?? null}
-      />
+      <Hero onExplore={() => scrollToSection("explore")} />
 
-      <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-16">
-        <div className="relative isolate flex flex-col lg:h-[calc(100vh-4rem)] lg:min-h-[600px] lg:flex-row">
+      <section id="explore" aria-label="Explore the resilience map" className="scroll-mt-24 px-2 pt-3 sm:px-3">
+        <div className="relative isolate flex flex-col overflow-clip rounded-[28px] border border-border bg-card shadow-float sm:rounded-[32px] lg:h-[calc(100svh-7rem)] lg:min-h-[600px] lg:flex-row">
           {/* Opacity-only reveals here: a transformed ancestor would break fixed positioning. */}
           <Reveal
             variant="fade-in"
-            className="relative h-[44vh] min-h-[300px] w-full bg-muted md:h-[58vh] md:min-h-[420px] lg:h-full lg:min-h-0 lg:flex-1"
+            className="relative h-[56vh] min-h-[380px] w-full bg-background md:h-[66vh] md:min-h-[540px] lg:h-full lg:min-h-0 lg:flex-1"
           >
             <ResilienceMap
               reefs={visibleReefs}
@@ -332,24 +331,28 @@ export default function Explore() {
                   type="button"
                   onClick={startReplay}
                   disabled={historyStatus === "loading"}
-                  className="absolute bottom-7 right-3 z-[1000] inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-3.5 py-2 text-xs font-medium text-foreground shadow-float backdrop-blur-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 sm:right-4"
+                  className="absolute bottom-7 right-3 z-[1000] inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-xs font-medium text-foreground shadow-float transition-colors hover:border-brand/40 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 sm:right-4"
                 >
                   {historyStatus === "loading" ? (
                     <Loader2 className="h-3.5 w-3.5 text-brand motion-safe:animate-spin" aria-hidden="true" />
                   ) : (
                     <History className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
                   )}
-                  Replay bleaching history, 1998–2020
+                  <span className="max-sm:hidden">Replay bleaching history, 1998–2020</span>
+                  <span className="sm:hidden">Replay 1998–2020</span>
                   {historyStatus === "error" && <span className="text-muted-strong">(could not load)</span>}
                 </button>
-                <MapFilter value={filter} onChange={handleFilterChange} counts={counts} />
-                {noaaGap && (
-                  <NoaaGapBanner
-                    summary={noaaGap}
-                    active={highlightGaps}
-                    onToggle={() => setHighlightGaps((v) => !v)}
-                  />
-                )}
+                {/* One toolbar row: the filter, then the NOAA-gap toggle; it wraps rather than overlapping. */}
+                <div className="pointer-events-none absolute inset-x-3 top-3 z-[1000] flex flex-wrap items-start gap-2 sm:inset-x-4 sm:top-4 sm:pl-11 [&>*]:pointer-events-auto">
+                  <MapFilter value={filter} onChange={handleFilterChange} counts={counts} />
+                  {noaaGap && (
+                    <NoaaGapBanner
+                      summary={noaaGap}
+                      active={highlightGaps}
+                      onToggle={() => setHighlightGaps((v) => !v)}
+                    />
+                  )}
+                </div>
                 <MapLegend
                   colorBy={colorBy}
                   onColorByChange={setColorBy}
@@ -364,7 +367,7 @@ export default function Explore() {
                 role="status"
                 className="pointer-events-none absolute left-1/2 top-4 z-[1000] -translate-x-1/2"
               >
-                <span className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs text-muted-strong shadow-float backdrop-blur-md">
+                <span className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs text-muted-strong shadow-float">
                   <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" aria-hidden="true" />
                   Loading reef dataset…
                 </span>
@@ -401,9 +404,9 @@ export default function Explore() {
               variant="fade-in"
               delay={150}
               aria-label="Reef analysis"
-              className="border-t border-border bg-card md:w-full lg:flex lg:w-[400px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
+              className="border-t border-border bg-card md:w-full lg:flex lg:w-[420px] lg:shrink-0 lg:flex-col lg:border-l lg:border-t-0"
             >
-              <div className="scroll-subtle lg:flex-1 lg:overflow-y-auto">
+              <div className="scroll-subtle relative lg:flex-1 lg:overflow-y-auto">
                 {replaying ? (
                   <HistoryYearPanel data={historyYearData} source={history.source} />
                 ) : panelReef ? (

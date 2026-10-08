@@ -1,5 +1,5 @@
 import { useState, type Ref } from "react";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, FlaskConical, MessageCircle, X } from "lucide-react";
 import EnvironmentalMetrics from "@/components/EnvironmentalMetrics";
 import FeatureContributions from "@/components/FeatureContributions";
 import HeatScenario from "@/components/HeatScenario";
@@ -58,21 +58,35 @@ function writeView(view: PanelView) {
 
 function ViewSwitch({ view, onChange }: { view: PanelView; onChange: (view: PanelView) => void }) {
   return (
-    <div role="group" aria-label="Explanation style" className="inline-grid grid-cols-2 gap-0.5 rounded-md bg-muted p-0.5">
-      {(["plain", "expert"] as const).map((v) => (
-        <button
-          key={v}
-          type="button"
-          onClick={() => onChange(v)}
-          aria-pressed={view === v}
-          className={cn(
-            "rounded px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            view === v ? "bg-card text-foreground shadow-sm" : "text-muted-strong hover:text-foreground",
-          )}
-        >
-          {v === "plain" ? "Plain language" : "Expert"}
-        </button>
-      ))}
+    <div
+      role="group"
+      aria-label="Explanation style"
+      className="relative grid grid-cols-2 rounded-full border border-border bg-background/70 p-1"
+    >
+      {/* The thumb slides between the two options. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-primary shadow-[0_6px_16px_-8px_rgba(14,94,140,0.6)] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{ transform: view === "expert" ? "translateX(100%)" : "none" }}
+      />
+      {(["plain", "expert"] as const).map((v) => {
+        const Icon = v === "plain" ? MessageCircle : FlaskConical;
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(v)}
+            aria-pressed={view === v}
+            className={cn(
+              "relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              view === v ? "text-primary-foreground" : "text-muted-strong hover:text-foreground",
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+            {v === "plain" ? "Plain language" : "Expert"}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -142,18 +156,16 @@ export default function ReefAnalysisPanel({
   const ownPhotos = photosReefId === undefined || photosReefId === reef.id;
 
   return (
-    <article key={reef.id} className="animate-slide-up p-6" aria-labelledby={headingId}>
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-strong">
-            {reef.region}
-          </p>
-          <h2
-            id={headingId}
-            className="mt-1 font-display text-xl font-medium leading-tight text-foreground"
-          >
-            {reef.name}
-          </h2>
+    <article key={reef.id} className="animate-slide-up px-6 pb-8" aria-labelledby={headingId}>
+      {/* Sticky top bar: the explanation style is always one tap away. */}
+      <div
+        className={cn(
+          "sticky z-20 -mx-6 flex items-center gap-2 border-b border-border bg-card px-6 py-3",
+          wide ? "top-[84px]" : "top-0",
+        )}
+      >
+        <div className="flex-1">
+          <ViewSwitch view={view} onChange={changeView} />
         </div>
         <Button
           ref={closeButtonRef}
@@ -161,15 +173,18 @@ export default function ReefAnalysisPanel({
           size="icon"
           onClick={onClose}
           aria-label="Close reef analysis"
-          className="shrink-0 text-muted-foreground"
+          className="shrink-0 rounded-full text-muted-strong hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </Button>
-      </header>
-
-      <div className="mt-4">
-        <ViewSwitch view={view} onChange={changeView} />
       </div>
+
+      <header className="pt-5">
+        <h2 id={headingId} className="font-display text-2xl font-medium leading-tight text-foreground">
+          {reef.name}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">{reef.region}</p>
+      </header>
 
       <div className={cn("mt-6", wide && "md:grid md:grid-cols-2 md:gap-10")}>
         <div>
@@ -187,9 +202,7 @@ export default function ReefAnalysisPanel({
               )}
               <Divider />
               <div>
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-strong">
-                  Environmental predictors
-                </p>
+                <h3 className="mb-1 text-sm font-semibold text-foreground">Environmental predictors</h3>
                 <EnvironmentalMetrics metrics={reef.metrics} />
               </div>
             </>

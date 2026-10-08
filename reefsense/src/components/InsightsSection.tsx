@@ -168,7 +168,9 @@ function HeatBandChart({ data }: { data: HeatBandShare[] }) {
       </div>
 
       {/* The same numbers for screen readers. */}
-      <table className="sr-only">
+      {/* sr-only on the wrapper: a table ignores the 1px width and would widen the page. */}
+      <div className="sr-only">
+      <table>
         <caption>Share of reefs in each predicted resilience band, by peak Degree Heating Weeks</caption>
         <thead>
           <tr>
@@ -193,6 +195,7 @@ function HeatBandChart({ data }: { data: HeatBandShare[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -237,35 +240,35 @@ export default memo(function InsightsSection({ reefs, metrics }: InsightsSection
   }, [reefs, metrics]);
 
   return (
-    <section id="insights" className="scroll-mt-16 border-t border-border bg-secondary">
-      <div className="mx-auto max-w-[1240px] px-6 py-20">
-        <div className="max-w-2xl">
-          <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-brand">Insights</p>
-            <h2 className="mt-3 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
-              Patterns across the global dataset
+    <section id="insights" className="scroll-mt-24">
+      <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-28 sm:px-8 sm:pt-36">
+        <div className="max-w-3xl">
+          <Reveal variant="mask">
+            <h2 className="text-balance text-4xl font-semibold leading-[1.04] tracking-[-0.03em] text-foreground sm:text-5xl lg:text-6xl">
+              Patterns across the{" "}
+              <span className="font-display font-normal italic tracking-[-0.02em] text-brand">global dataset</span>
             </h2>
           </Reveal>
-          <Reveal as="p" delay={100} className="mt-4 text-base leading-relaxed text-muted-foreground">
+          <Reveal as="p" delay={150} className="mt-6 max-w-2xl text-base leading-relaxed text-muted-strong sm:text-lg">
             Model-based estimates for every mapped reef under its most recent 12 weeks of
             satellite heat stress. The model is validated on surveys from ecoregions it never saw
             during training, and compared against heat stress alone.
           </Reveal>
         </div>
 
-        <dl className="mt-10 grid grid-cols-2 gap-y-6 border-y border-border py-6 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-border">
+        <dl className="mt-14 grid grid-cols-2 gap-x-4 gap-y-8 border-y border-border py-8 sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-border">
           {stats.map((s, i) => (
-            <Reveal key={s.label} delay={i * 80} className="flex flex-col-reverse lg:px-6 lg:first:pl-0">
-              <dt className="mt-1 text-sm text-muted-foreground">{s.label}</dt>
-              <dd className="font-display text-3xl font-medium tabular-nums text-foreground">
+            <Reveal key={s.label} delay={i * 80} className="flex flex-col-reverse justify-end lg:px-6 lg:first:pl-0">
+              <dt className="mt-2 text-sm leading-snug text-muted-strong">{s.label}</dt>
+              <dd className="font-display text-4xl font-medium tabular-nums tracking-tight text-foreground">
                 {s.value}
               </dd>
             </Reveal>
           ))}
         </dl>
 
-        <div className="mt-8 grid grid-cols-1 rounded-lg border border-border bg-card lg:grid-cols-[2fr_3fr] lg:divide-x lg:divide-border">
-          <Reveal as="figure" className="flex flex-col p-6">
+        <div className="mt-10 grid grid-cols-1 rounded-[28px] border border-border bg-card shadow-float lg:grid-cols-[2fr_3fr] lg:divide-x lg:divide-border">
+          <Reveal as="figure" className="flex flex-col p-6 sm:p-8">
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">Reefs by predicted resilience</h3>
               <p className="mt-1 text-xs text-muted-strong">
@@ -275,7 +278,7 @@ export default memo(function InsightsSection({ reefs, metrics }: InsightsSection
             <CategoryBars data={countData} total={reefs.length} />
           </Reveal>
 
-          <Reveal as="figure" delay={120} className="border-t border-border p-6 lg:border-t-0">
+          <Reveal as="figure" delay={120} className="border-t border-border p-6 sm:p-8 lg:border-t-0">
             <figcaption>
               <h3 className="text-sm font-semibold text-foreground">Predicted resilience by recent heat stress</h3>
               <p className="mt-1 text-xs text-muted-strong">

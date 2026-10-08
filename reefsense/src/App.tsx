@@ -4,10 +4,10 @@ import Navbar from "@/components/Navbar";
 import Explore from "@/pages/Explore";
 import { scrollToSection } from "@/lib/scroll";
 
-const SECTIONS = ["explore", "insights", "about"];
+const SECTIONS = ["top", "explore", "insights", "about"];
 
 export default function App() {
-  const [active, setActive] = useState("explore");
+  const [active, setActive] = useState("top");
 
   // Highlight the nav item for whichever section is currently in view.
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <Navbar active={active} onNavigate={scrollToSection} />
-      <main className="pt-16">
+      <main>
         <Explore />
       </main>
       <Footer />
