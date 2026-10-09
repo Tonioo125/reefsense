@@ -1,0 +1,11 @@
+{
+  "name": "submission-capture",
+  "version": "1.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "description": "Screenshots of www.reefsense.online and the figures for docs/submission/PROJECT.md",
+  "dependencies": {
+    "playwright": "^1.64.0"
+  }
+}

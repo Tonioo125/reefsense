@@ -1,0 +1,42 @@
+# Screenshots of the live site for the written project description (docs/submission/PROJECT.md).
+# Runs on a push to docs/submission that touches the capture scripts; the raw screenshots are
+# uploaded as the "submission-screenshots" artifact (compose.mjs turns them into the figures).
+name: Submission screenshots
+
+on:
+  push:
+    branches: [docs/submission]
+    paths: ["docs/submission/capture/**", ".github/workflows/submission-screenshots.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: docs/submission/capture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/submission/capture/package-lock.json
+      - name: Install Playwright
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Where the site is hosted
+        run: curl -sSI https://www.reefsense.online/ | grep -viE "^(set-cookie|date|etag|content-length):" || true
+      - name: Screenshots
+        run: node screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: submission-screenshots
+          retention-days: 14
+          path: docs/submission/capture/raw/
