@@ -1,0 +1,30 @@
+{
+  "01-hero": {
+    "startMs": 2564,
+    "endMs": 11401
+  },
+  "02-noaa-gap": {
+    "startMs": 2437,
+    "endMs": 23923
+  },
+  "03-reef": {
+    "startMs": 2916,
+    "endMs": 36883
+  },
+  "04-restore": {
+    "startMs": 2480,
+    "endMs": 18516
+  },
+  "05-heat": {
+    "startMs": 2471,
+    "endMs": 27034
+  },
+  "06-skill": {
+    "startMs": 2444,
+    "endMs": 14954
+  },
+  "07-act": {
+    "startMs": 2469,
+    "endMs": 11299
+  }
+}
