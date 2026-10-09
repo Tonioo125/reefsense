@@ -34,25 +34,25 @@ ReefSense is built for all of these, but its primary focus is the first two: pra
 
 ReefSense is a live web app. Every number on screen comes from the trained model or real data; when a source is unavailable, the app says so instead of showing a placeholder.
 
-![The ReefSense landing page](images/01-landing.png)
+![The ReefSense landing page](images/01-landing.jpg)
 
 *Figure 1. The landing page leads with the problem: most bleaching starts below NOAA's alert threshold.*
 
 **A resilience map of 3,780 reefs** (635 in Indonesia, the rest mostly across Asia). Each reef is coloured by its predicted probability of avoiding significant bleaching under its last 12 weeks of NOAA satellite heat stress. The map can be filtered by band, recoloured by coral cover, or shown over the UNEP-WCMC reef extent.
 
-![The resilience map](images/02-map.png)
+![The resilience map](images/02-map.jpg)
 
 *Figure 2. The resilience map. Suggested reefs on the right open a full report.*
 
 **The NOAA gap.** One click highlights the reefs where NOAA's alerts have not reached Alert Level 1 for 12 weeks, yet the model predicts at least a 34% chance of significant bleaching. These are the reefs a manager would not otherwise think to check.
 
-![Reefs at elevated risk with no NOAA alert](images/03-noaa-gap.png)
+![Reefs at elevated risk with no NOAA alert](images/03-noaa-gap.jpg)
 
 *Figure 3. The NOAA gap highlighted: at-risk reefs where NOAA's alerts stayed below Alert Level 1 for 12 weeks.*
 
 **A report for every reef.** Opening a reef shows its estimate, the conditions behind it and everything known about the site. Our case study is Crystal Bay in Nusa Penida, Bali, where the model estimates an **86%** chance of avoiding significant bleaching under recent heat.
 
-![The reef report for Crystal Bay](images/04-reef-report.png)
+![The reef report for Crystal Bay](images/04-reef-report.jpg)
 
 *Figure 4. The reef report: predicted probability, its band, and the environmental predictors.*
 
@@ -73,7 +73,7 @@ ReefSense is a live web app. Every number on screen comes from the trained model
 
 **Bleaching history, 1998–2020.** A replay map shows every observed bleaching survey, year by year, including the 2016 global bleaching event.
 
-![The bleaching history replay in 2016](images/07-bleaching-history.png)
+![The bleaching history replay in 2016](images/07-bleaching-history.jpg)
 
 *Figure 7. The replay in 2016, during the third global bleaching event.*
 
@@ -103,7 +103,7 @@ ReefSense is a live web app. Every number on screen comes from the trained model
 
 **On a phone.** The map and report work on a phone, where the report opens as a bottom sheet, so they can be used on a boat or at a dive centre.
 
-![ReefSense on a phone](images/12-mobile.png)
+![ReefSense on a phone](images/12-mobile.jpg)
 
 *Figure 12. The landing page, the map and a reef report on a 390 px phone screen.*
 

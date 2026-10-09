@@ -1,7 +1,8 @@
 // Builds the figures in ../images/ from the screenshots in raw/ (screenshots.mjs) and architecture.html.
 //   node compose.mjs
-// A figure is a PNG, or a JPEG (quality 90) when the PNG would be over MAX_BYTES, so every image stays
-// within common upload limits.
+// Photo-heavy figures (map tiles, photos) are JPEG at quality 90, the rest PNG; JPEG lists them, and
+// PROJECT.md links each with that extension. Every figure must stay under MAX_BYTES (upload limits).
+const JPEG = new Set(["01-landing", "02-map", "03-noaa-gap", "04-reef-report", "07-bleaching-history", "12-mobile"]);
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
@@ -40,13 +41,9 @@ async function shoot(name) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 20000 });
   const fig = page.locator("#fig");
-  let file = path.join(OUT, `${name}.png`);
-  await fig.screenshot({ path: file });
-  if (fs.statSync(file).size > MAX_BYTES) {
-    fs.rmSync(file);
-    file = path.join(OUT, `${name}.jpg`);
-    await fig.screenshot({ path: file, type: "jpeg", quality: 90 });
-  }
+  const file = path.join(OUT, `${name}.${JPEG.has(name) ? "jpg" : "png"}`);
+  await fig.screenshot({ path: file, ...(JPEG.has(name) ? { type: "jpeg", quality: 90 } : {}) });
+  if (fs.statSync(file).size > MAX_BYTES) throw new Error(`${path.basename(file)} is over ${MAX_BYTES} bytes`);
   const [w, h] = path.extname(file) === ".png" ? pngSize(file) : (await fig.boundingBox().then((b) => [b.width * 2, b.height * 2]));
   report.push(`${path.basename(file)}  ${Math.round(w)}x${Math.round(h)}  ${(fs.statSync(file).size / 1048576).toFixed(2)} MB`);
 }
@@ -60,10 +57,10 @@ async function figure(name, html) {
   fs.rmSync(tmp);
 }
 
-/** A full-window screenshot as its own figure: copied as is, or re-encoded as JPEG if too big. */
+/** A full-window screenshot as its own figure: copied as is (PNG), or re-encoded as JPEG. */
 async function single(name, shot) {
   const src = path.join(RAW, `${shot}.png`);
-  if (fs.statSync(src).size <= MAX_BYTES) {
+  if (!JPEG.has(name)) {
     fs.copyFileSync(src, path.join(OUT, `${name}.png`));
     const [w, h] = pngSize(src);
     report.push(`${name}.png  ${w}x${h}  ${(fs.statSync(src).size / 1048576).toFixed(2)} MB`);

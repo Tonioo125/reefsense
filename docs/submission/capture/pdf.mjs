@@ -46,7 +46,13 @@ fs.writeFileSync(tmp, html);
 const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.goto(pathToFileURL(tmp).href, { waitUntil: "networkidle" });
-await page.waitForFunction(() => window.rendered && [...document.images].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 30000 });
+page.on("requestfailed", (r) => console.error("failed:", r.url(), r.failure()?.errorText));
+await page.waitForFunction(() => window.rendered && [...document.images].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 30000 })
+  .catch(async (err) => {
+    console.error(await page.evaluate(() => ({ marked: typeof marked, rendered: !!window.rendered,
+      broken: [...document.images].filter((i) => !i.complete || !i.naturalWidth).map((i) => i.getAttribute("src")) })));
+    throw err;
+  });
 await page.evaluate(() => document.fonts.ready);
 await page.pdf({
   path: path.join(DOC, "PROJECT.pdf"),
