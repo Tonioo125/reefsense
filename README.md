@@ -174,11 +174,16 @@ One Docker image (`Dockerfile`) serves the web app and the API from the same URL
 
 Built in 7 days, so we kept the scope honest. Next, in rough order:
 
+- **Close the loop: from forecast to field and back.** Today ReefSense predicts; next it should also learn from what people see underwater.
+  - An **AI survey planner** that tells divers and rangers where to look this week: reefs where one survey would improve the forecast most (high predicted risk, high uncertainty, few past surveys, reachable by boat).
+  - A **photo model** that turns divers' and tourists' reef photos into bleaching estimates, asking for a human check when unsure.
+  - Each confirmed photo becomes a new label at that reef, the map shows predicted vs observed, and the model retrains on the new data, so the system gets better the more it is used.
 - **Climate refugia and larval connectivity in the ranking.** The scoring already supports extra criteria; we left these out rather than fake data we have not loaded yet (50 Reefs+ and a connectivity model).
 - **Bahasa Indonesia.** The plain-language view, the ranking and the reef report in Indonesian, for local communities, rangers and dive operators.
 - **Grounded Q&A per reef.** Ask questions about a reef and get answers written only from that reef's own model output, explanation, survey history and news, with sources shown, and "we don't know" when the data does not cover it.
 - **Feedback from restoration teams** working in Nusa Penida and the wider Coral Triangle on whether the ranking helps them choose sites.
 - **Coverage beyond Asia,** and an alert when a reef's predicted risk rises.
+
 
 ## Limitations
 
