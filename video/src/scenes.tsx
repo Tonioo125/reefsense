@@ -154,7 +154,7 @@ export const Clip: React.FC<{ scene: Scene; index: number }> = ({ scene, index }
           </Stage>
         </div>
       </AbsoluteFill>
-      {scene.showcase && <HeroChips />}
+      {scene.showcase && <HeroChips out={scene.chipsOut} />}
       {scene.callouts?.map((c) => <CalloutCard key={c.title} c={c} />)}
       <LowerThird text={scene.label ?? ""} index={index} />
       <Captions lines={scene.lines} total={frames(scene.seconds)} />

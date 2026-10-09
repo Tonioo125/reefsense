@@ -43,12 +43,12 @@ node scripts-voiceover.mjs        # refresh VOICEOVER.md
 
 `voiceover.ts` needs [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx/releases) (`linux-x64-shared`), the Kokoro v1.0 model (`kokoro-multi-lang-v1_0` from its `tts-models` release; voice af_heart) and ffmpeg on `PATH`: set `SHERPA_ONNX_DIR` and `KOKORO_DIR`, and `WHISPER_DIR` (`sherpa-onnx-whisper-base.en`, `asr-models` release) for `--asr`. A line can set `say` when it should be read differently from how it is written. Numbers, NOAA, LightGBM and place names are spelled out for the voice in `spoken()`.
 
-The dashboard shot paces itself to its narration: `record.mjs` waits for each line (from `public/voiceover/lines.json`) before the next step and logs the beats, which `timeline.ts` uses for that scene's captions and camera. So after changing a dashboard line, re-record that shot (`ONLY=04-dashboard node record.mjs`).
+Every shot paces itself to its narration: `record.mjs` waits for each line (lengths from `public/voiceover/lines.json`) before the next step and logs beats (line starts, clicks, scrolls), which `timeline.ts` uses for that scene's captions, voice, camera and callouts. So the video stays in sync on a slow machine, and after changing a line you re-record its shot (`ONLY=04-dashboard node record.mjs`).
 
 To use a human voice, record each line into its file in `public/voiceover/` (names are in `VOICEOVER.md`), then `bun scripts/voiceover.ts --measure`.
 
 ## Music
 
-`bun scripts/music.ts` writes `public/music.mp3` (-20 LUFS): an ambient piece in D major whose layers follow the video's sections (bass at the solution, an arpeggio under the live demo, a resolve on the closing line). It reads the section times from the timeline, so regenerate it when scene lengths change a lot. `Video.tsx` ducks it under the narration.
+`bun scripts/music.ts` writes `public/music.mp3` (-20 LUFS): an ambient piece in D major whose layers follow the video's sections (bass at the solution, an arpeggio under the live demo, a resolve on the closing line). It reads the section times from the timeline (which depend on the recording), so CI regenerates it after recording; locally, rerun it after `record.mjs`. `Video.tsx` ducks it under the narration.
 
 Render without sound with `--props='{"voiceover":false,"music":false}'`.

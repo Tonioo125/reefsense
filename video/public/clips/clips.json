@@ -1,34 +1,34 @@
 {
   "01-hero": {
-    "startMs": 2564,
-    "endMs": 11401
+    "startMs": 3000,
+    "endMs": 11800
   },
   "02-noaa-gap": {
-    "startMs": 2437,
-    "endMs": 23923
+    "startMs": 3000,
+    "endMs": 19500
   },
   "03-reef": {
-    "startMs": 2916,
-    "endMs": 36883
+    "startMs": 3000,
+    "endMs": 28000
   },
   "04-dashboard": {
-    "startMs": 2500,
-    "endMs": 27400
+    "startMs": 3000,
+    "endMs": 27900
   },
   "05-restore": {
-    "startMs": 2480,
-    "endMs": 18516
+    "startMs": 3000,
+    "endMs": 17300
   },
   "06-heat": {
-    "startMs": 2471,
-    "endMs": 27034
+    "startMs": 3000,
+    "endMs": 22500
   },
   "07-skill": {
-    "startMs": 2444,
-    "endMs": 14954
+    "startMs": 3000,
+    "endMs": 16000
   },
   "08-act": {
-    "startMs": 2469,
-    "endMs": 11299
+    "startMs": 3000,
+    "endMs": 9800
   }
 }

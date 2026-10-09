@@ -40,3 +40,9 @@ for (const s of SCENES) {
 md += `_${words} words._\n`;
 fs.writeFileSync("VOICEOVER.md", md);
 console.log(fmt(TOTAL / 30), words, "words", late ? `, ${late} line(s) overlapping` : "");
+// The submission must stay under 4 minutes; fail before a long render rather than after.
+if (TOTAL / 30 >= 239.5) {
+  console.error(`error: the video is ${fmt(TOTAL / 30)}, over the 4:00 limit`);
+  process.exitCode = 1;
+}
+if (late) process.exitCode = 1;

@@ -14,7 +14,10 @@ const inOut = Easing.bezier(0.65, 0, 0.35, 1);
 export const Camera: React.FC<{ keys?: Focus[]; children: React.ReactNode }> = ({ keys, children }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const k = keys?.length ? keys : [{ at: 0, x: 960, y: 540, s: 1 }];
+  // Keyframes placed on recorded beats can land out of order when two beats are close: keep them
+  // in the given order, each at least 0.1 s after the one before.
+  const k = (keys?.length ? keys : [{ at: 0, x: 960, y: 540, s: 1 }]).reduce<Focus[]>(
+    (out, key) => [...out, out.length ? { ...key, at: Math.max(key.at, out[out.length - 1].at + 0.1) } : key], []);
   const t = f / fps;
   let x = k[0].x, y = k[0].y, s = k[0].s;
   for (let i = 0; i < k.length - 1; i++) {
@@ -79,8 +82,8 @@ export const Stage: React.FC<{ showcase?: boolean; children: React.ReactNode }> 
   );
 };
 
-/** Floating stat chips orbiting the hero shot. */
-export const HeroChips: React.FC = () => {
+/** Floating stat chips orbiting the hero shot; they leave at `out` seconds (the click into the map). */
+export const HeroChips: React.FC<{ out?: number }> = ({ out = 4.6 }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const chips = [
@@ -88,7 +91,7 @@ export const HeroChips: React.FC = () => {
     { t: "851 missed", s: "at risk, no NOAA alert", x: 1500, y: 200, c: C.coral, at: 1.4 },
     { t: "Every estimate explained", s: "straight from the model", x: 1430, y: 760, c: C.surf, at: 2.0 },
   ];
-  const fadeOut = interpolate(f, [4.6 * fps, 5.4 * fps], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fadeOut = interpolate(f, [out * fps, (out + 0.8) * fps], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <>
       {chips.map((c, i) => {

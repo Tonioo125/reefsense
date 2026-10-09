@@ -59,8 +59,13 @@ jobs:
             ffmpeg -v error -y -i "$f" -c:v libx264 -crf 18 -g 15 -pix_fmt yuv420p -r 30 -an "${f%.webm}.mp4"
           done
           cat public/clips/clips.json
-      - name: Voiceover script and timing check
+      # Fails if a narrated line runs into the next or the video reaches 4:00, before the long render.
+      - name: Voiceover script, timing and length check
         run: node scripts-voiceover.mjs
+      # The music follows the section times, which depend on the recording, so it is made here.
+      - uses: oven-sh/setup-bun@v2
+      - name: Music
+        run: bun scripts/music.ts
 
       - name: Render
         run: |
@@ -76,13 +81,16 @@ jobs:
             video/out/reefsense-demo.mp4
             video/out/thumbnail.png
             video/public/clips/clips.json
+            video/public/music.mp3
             video/VOICEOVER.md
 
       - name: Publish to demo/
+        # Also commits the clips.json beats and music the video was made with.
         if: inputs.publish || contains(github.event.head_commit.message, '[publish]')
         working-directory: .
         run: |
           cp video/out/reefsense-demo.mp4 demo/reefsense-demo.mp4
           cp video/out/thumbnail.png demo/reefsense-thumbnail.png
           bash .github/scripts/commit-data.sh "demo: render the demo video with narration and music" \
-            demo/reefsense-demo.mp4 demo/reefsense-thumbnail.png video/public/clips/clips.json video/VOICEOVER.md
+            demo/reefsense-demo.mp4 demo/reefsense-thumbnail.png video/public/clips/clips.json video/VOICEOVER.md \
+            video/public/music.mp3
