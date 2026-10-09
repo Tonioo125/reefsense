@@ -166,7 +166,7 @@ The "Support reef conservation" links in the reef panel come from `data/sites/su
 
 ## Deploy
 
-One Docker image (`Dockerfile`) serves the web app and the API from the same URL. There are two step-by-step guides:
+One Docker image (`Dockerfile`) serves the web app and the API from the same URL. There are three step-by-step guides (the live site runs on Fly.io):
 - [DEPLOY-AZURE.md](DEPLOY-AZURE.md): Azure Container Apps with Azure for Students, no credit card needed.
 - [DEPLOY-CLOUD-RUN.md](DEPLOY-CLOUD-RUN.md): Google Cloud Run, free with the Google Cloud trial.
 - [DEPLOY.md](DEPLOY.md): Fly.io (`fly.toml`), about $2 a week. It also covers cost and alternatives.
