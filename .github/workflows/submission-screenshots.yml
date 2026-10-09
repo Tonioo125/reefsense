@@ -1,19 +1,24 @@
-# Screenshots of the live site for the written project description (docs/submission/PROJECT.md).
-# Runs on a push to docs/submission that touches the capture scripts; the raw screenshots are
-# uploaded as the "submission-screenshots" artifact (compose.mjs turns them into the figures).
-name: Submission screenshots
+# Builds the figures and the PDF of the written project description (docs/submission/PROJECT.md):
+# screenshots of the live site (capture/screenshots.mjs), the composed figures and architecture
+# diagram (capture/compose.mjs), then PROJECT.pdf (capture/pdf.mjs). Runs on a push to
+# docs/submission that touches PROJECT.md or capture/, and commits images/ and PROJECT.pdf back.
+name: Submission figures
 
 on:
   push:
     branches: [docs/submission]
-    paths: ["docs/submission/capture/**", ".github/workflows/submission-screenshots.yml"]
+    paths: ["docs/submission/PROJECT.md", "docs/submission/capture/**", ".github/workflows/submission-screenshots.yml"]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: submission-figures
+  cancel-in-progress: true
 
 jobs:
-  screenshots:
+  figures:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -30,13 +35,26 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
-      - name: Where the site is hosted
-        run: curl -sSI https://www.reefsense.online/ | grep -viE "^(set-cookie|date|etag|content-length):" || true
-      - name: Screenshots
-        run: node screenshots.mjs
-      - uses: actions/upload-artifact@v4
+      - name: Build
+        run: |
+          mkdir -p ../build-log
+          {
+            echo "## Host"; curl -sSI https://www.reefsense.online/ | grep -iE "^(HTTP|server|via|fly-|x-)" || true
+            echo "## Screenshots"; node screenshots.mjs
+            echo "## Figures"; node compose.mjs
+            echo "## PDF"; node pdf.mjs
+          } 2>&1 | tee ../build-log/log.txt
+          exit "${PIPESTATUS[0]}"
+      - name: Keep failure screenshots
+        if: failure()
+        run: cp raw/failed-*.png ../build-log/ 2>/dev/null || true
+      - name: Commit
         if: always()
-        with:
-          name: submission-screenshots
-          retention-days: 14
-          path: docs/submission/capture/raw/
+        working-directory: .
+        run: |
+          git add docs/submission/build-log docs/submission/images docs/submission/PROJECT.pdf 2>/dev/null || git add docs/submission/build-log
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "docs(submission): build figures and PDF (${{ job.status }})"
+          git pull --rebase origin docs/submission
+          git push origin HEAD:docs/submission
