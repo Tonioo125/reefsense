@@ -4,7 +4,6 @@
 
 - **Live site:** https://www.reefsense.online (backup: https://reefsense.fly.dev)
 - **Case study, Crystal Bay (Nusa Penida, Bali):** https://www.reefsense.online/?reef=NP01
-- **Demo video:** `demo/reefsense-demo.mp4`
 - **Track:** ForgeHacks 2026, AI + Climate. Built in 7 days by Antonio Owen Putra Amadeus and Glenn Putra Laymando.
 
 > The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); every number below comes from `data/processed/model_metrics_*.json` and `data/processed/model_validation.json`. The web app lives in `reefsense/`.
@@ -202,7 +201,6 @@ pipeline/   data download, feasibility check, training, scoring
 backend/    FastAPI service (sites, model metrics, ranking)
 reefsense/  ReefSense web app (React + TypeScript + Leaflet + Recharts)
 frontend/   original React + Leaflet app
-reefresilience/  leftover build output from the app's earlier name (not used; the app lives in reefsense/)
 data/       raw (git-ignored), processed outputs, demo site list
 Dockerfile, fly.toml, DEPLOY.md   deployment (one image: web app + API)
 ```
