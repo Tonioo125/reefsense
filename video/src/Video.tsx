@@ -43,6 +43,20 @@ const musicVolume = (f: number) => {
   return level * edges;
 };
 
+/** Narration and music only, on the same frames as ReefSenseDemo. Rendering audio this way skips the
+ *  screen recordings, which a full 4K render would otherwise decode just to throw away. */
+export const Soundtrack: React.FC<DemoProps> = ({ voiceover, music }) => (
+  <AbsoluteFill style={{ background: "#03121F" }}>
+    {voiceover &&
+      SPEECH.map((s) => (
+        <Sequence key={s.key} from={s.from} durationInFrames={s.to - s.from + FPS} layout="none">
+          <Audio src={staticFile(s.file)} />
+        </Sequence>
+      ))}
+    {music && <Audio src={staticFile("music.mp3")} volume={musicVolume} />}
+  </AbsoluteFill>
+);
+
 export const ReefSenseDemo: React.FC<DemoProps> = ({ voiceover, music }) => {
   let clipIndex = 0;
   return (
