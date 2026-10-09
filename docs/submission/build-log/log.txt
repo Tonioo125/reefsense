@@ -1,0 +1,50 @@
+## Host
+HTTP/2 405 
+server: Fly/75174e2d02 (2026-10-08)
+via: 2 fly.io
+fly-request-id: 01M4GP5SZ6T9WEVTZF07WTR1NM-iad
+## Screenshots
+wrote hero
+wrote map
+wrote noaa-gap
+wrote reef
+wrote replay
+wrote panel-plain
+wrote panel-heat
+wrote panel-reasons
+wrote panel-support
+wrote panel-surveys
+wrote panel-imagery
+wrote restore
+wrote insights-heat
+wrote validation
+wrote act
+wrote mobile-hero
+wrote mobile-map
+wrote mobile-reef
+## Figures
+13-architecture.png  3280x1770  0.61 MB
+01-landing.jpg  2880x1800  1.09 MB
+02-map.jpg  2880x1800  0.89 MB
+03-noaa-gap.jpg  2880x1800  0.89 MB
+04-reef-report.png  2880x1800  3.20 MB
+05-explanations.png  2848x2740  1.27 MB
+06-reef-context.png  2848x2702  2.21 MB
+07-bleaching-history.jpg  2880x1800  0.88 MB
+08-restore.png  2880x2360  0.45 MB
+09-heat-illustration.png  2880x1800  0.43 MB
+10-validation.png  2880x2000  0.26 MB
+11-what-you-can-do.png  2880x1800  0.17 MB
+12-mobile.png  2868x2162  2.75 MB
+## PDF
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /home/runner/work/reefsense/reefsense/docs/submission/capture/pdf.mjs:49:12 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.3
