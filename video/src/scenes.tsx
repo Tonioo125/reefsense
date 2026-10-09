@@ -63,7 +63,8 @@ const DhwGauge: React.FC<{ f: number }> = ({ f }) => {
 export const Problem: React.FC<{ scene: Scene }> = ({ scene }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const beat2 = 12 * fps, beat3 = 18.5 * fps;
+  // The picture changes with the narration: "1 in 4" on line 3, Indonesia on line 4.
+  const beat2 = scene.lines[2].at * fps, beat3 = scene.lines[3].at * fps;
   const p1 = interpolate(f, [beat2 - 15, beat2], [1, 0], ease);
   const p2 = Math.min(interpolate(f, [beat2, beat2 + 15], [0, 1], ease), interpolate(f, [beat3 - 15, beat3], [1, 0], ease));
   const p3 = interpolate(f, [beat3, beat3 + 15], [0, 1], ease);
@@ -265,7 +266,7 @@ export const Results: React.FC<{ scene: Scene }> = ({ scene }) => {
 export const Close: React.FC<{ scene: Scene }> = ({ scene }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const end = 5.6 * fps;
+  const end = (scene.lines[1].at - 0.4) * fps; // the logo arrives just before "ReefSense. See the risk..."
   return (
     <Ocean>
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 40, opacity: interpolate(f, [end - 12, end], [1, 0], ease) }}>

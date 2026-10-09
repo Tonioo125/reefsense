@@ -11,19 +11,23 @@
     "startMs": 2916,
     "endMs": 36883
   },
-  "04-restore": {
+  "04-dashboard": {
+    "startMs": 2500,
+    "endMs": 27400
+  },
+  "05-restore": {
     "startMs": 2480,
     "endMs": 18516
   },
-  "05-heat": {
+  "06-heat": {
     "startMs": 2471,
     "endMs": 27034
   },
-  "06-skill": {
+  "07-skill": {
     "startMs": 2444,
     "endMs": 14954
   },
-  "07-act": {
+  "08-act": {
     "startMs": 2469,
     "endMs": 11299
   }

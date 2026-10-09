@@ -1,0 +1,88 @@
+# Records the live site and renders the Remotion demo video (video/README.md) on a GitHub runner:
+# the recordings need the live site, and Remotion's compositor needs glibc 2.35+.
+# A push to demo/video whose commit message contains [render] renders it and uploads the
+# "reefsense-demo" artifact; [publish] also commits the video and thumbnail to demo/.
+name: Demo video
+
+on:
+  push:
+    branches: [demo/video]
+    paths: ["video/**", ".github/workflows/demo-video.yml"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Commit the rendered video to demo/
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: demo-video-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[render]') ||
+      contains(github.event.head_commit.message, '[publish]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: video
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            video/package-lock.json
+            video/capture/package-lock.json
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install Remotion
+        run: npm ci --no-audit --no-fund
+
+      - name: Record www.reefsense.online
+        working-directory: video/capture
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node record.mjs
+      - name: WebM to MP4 (Remotion seeks MP4 much faster)
+        run: |
+          for f in public/clips/0*.webm; do
+            ffmpeg -v error -y -i "$f" -c:v libx264 -crf 18 -g 15 -pix_fmt yuv420p -r 30 -an "${f%.webm}.mp4"
+          done
+          cat public/clips/clips.json
+      - name: Voiceover script and timing check
+        run: node scripts-voiceover.mjs
+
+      - name: Render
+        run: |
+          npx remotion render src/index.ts ReefSenseDemo out/reefsense-demo.mp4 --codec h264 --crf 18 --audio-bitrate 192k --concurrency 100%
+          npx remotion still src/index.ts Thumbnail out/thumbnail.png
+          ffprobe -v error -show_entries format=duration:stream=codec_name -of compact out/reefsense-demo.mp4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reefsense-demo
+          retention-days: 14
+          path: |
+            video/out/reefsense-demo.mp4
+            video/out/thumbnail.png
+            video/public/clips/clips.json
+            video/VOICEOVER.md
+
+      - name: Publish to demo/
+        if: inputs.publish || contains(github.event.head_commit.message, '[publish]')
+        working-directory: .
+        run: |
+          cp video/out/reefsense-demo.mp4 demo/reefsense-demo.mp4
+          cp video/out/thumbnail.png demo/reefsense-thumbnail.png
+          bash .github/scripts/commit-data.sh "demo: render the demo video with narration and music" \
+            demo/reefsense-demo.mp4 demo/reefsense-thumbnail.png video/public/clips/clips.json video/VOICEOVER.md

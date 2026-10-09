@@ -2,8 +2,6 @@ node_modules/
 out/
 public/clips/*.webm
 public/clips/*.mp4
-public/voiceover.mp3
-public/music.mp3
 capture/node_modules/
 capture/*.png
 capture/explore*.mjs

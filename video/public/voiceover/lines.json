@@ -1,0 +1,210 @@
+{
+  "hook": [
+    {
+      "file": "voiceover/hook-1.mp3",
+      "seconds": 3.265,
+      "hash": "01ff22139641"
+    },
+    {
+      "file": "voiceover/hook-2.mp3",
+      "seconds": 2.509,
+      "hash": "7bc6df9368f3"
+    }
+  ],
+  "problem": [
+    {
+      "file": "voiceover/problem-1.mp3",
+      "seconds": 5.03,
+      "hash": "c00252dbfa22"
+    },
+    {
+      "file": "voiceover/problem-2.mp3",
+      "seconds": 3.202,
+      "hash": "64d1e67fb028"
+    },
+    {
+      "file": "voiceover/problem-3.mp3",
+      "seconds": 7.283,
+      "hash": "8708b592b498"
+    },
+    {
+      "file": "voiceover/problem-4.mp3",
+      "seconds": 7.037,
+      "hash": "4d923329939e"
+    }
+  ],
+  "solution": [
+    {
+      "file": "voiceover/solution-1.mp3",
+      "seconds": 6.876,
+      "hash": "d18c20d04103"
+    },
+    {
+      "file": "voiceover/solution-2.mp3",
+      "seconds": 3.134,
+      "hash": "5139fbac63c2"
+    }
+  ],
+  "hero": [
+    {
+      "file": "voiceover/hero-1.mp3",
+      "seconds": 2.852,
+      "hash": "dea50a21dcad"
+    }
+  ],
+  "gap": [
+    {
+      "file": "voiceover/gap-1.mp3",
+      "seconds": 3.962,
+      "hash": "bd5e77794707"
+    },
+    {
+      "file": "voiceover/gap-2.mp3",
+      "seconds": 6.305,
+      "hash": "7bcf5737781b"
+    },
+    {
+      "file": "voiceover/gap-3.mp3",
+      "seconds": 3.091,
+      "hash": "32e875eb8e3f"
+    }
+  ],
+  "reef": [
+    {
+      "file": "voiceover/reef-1.mp3",
+      "seconds": 3.911,
+      "hash": "ae9dc43e0ac5"
+    },
+    {
+      "file": "voiceover/reef-2.mp3",
+      "seconds": 4.831,
+      "hash": "d98c7592e6aa"
+    },
+    {
+      "file": "voiceover/reef-3.mp3",
+      "seconds": 4.03,
+      "hash": "d624058961c0"
+    },
+    {
+      "file": "voiceover/reef-4.mp3",
+      "seconds": 3.607,
+      "hash": "0dd7e2b68d3f"
+    },
+    {
+      "file": "voiceover/reef-5.mp3",
+      "seconds": 2.903,
+      "hash": "f146935e8ff2"
+    }
+  ],
+  "dashboard": [
+    {
+      "file": "voiceover/dashboard-1.mp3",
+      "seconds": 5.401,
+      "hash": "e78ec15e33b4"
+    },
+    {
+      "file": "voiceover/dashboard-2.mp3",
+      "seconds": 6.913,
+      "hash": "7070a1e04252"
+    },
+    {
+      "file": "voiceover/dashboard-3.mp3",
+      "seconds": 4.008,
+      "hash": "c51e67986a33"
+    },
+    {
+      "file": "voiceover/dashboard-4.mp3",
+      "seconds": 5.393,
+      "hash": "598a0287c284"
+    }
+  ],
+  "restore": [
+    {
+      "file": "voiceover/restore-1.mp3",
+      "seconds": 4.388,
+      "hash": "5e4296cc0eb7"
+    },
+    {
+      "file": "voiceover/restore-2.mp3",
+      "seconds": 4.446,
+      "hash": "9475533fae00"
+    },
+    {
+      "file": "voiceover/restore-3.mp3",
+      "seconds": 2.672,
+      "hash": "3ae7d513adb5"
+    }
+  ],
+  "heat": [
+    {
+      "file": "voiceover/heat-1.mp3",
+      "seconds": 1.563,
+      "hash": "fff02794bc7f"
+    },
+    {
+      "file": "voiceover/heat-2.mp3",
+      "seconds": 3.997,
+      "hash": "c9827198b7cd"
+    },
+    {
+      "file": "voiceover/heat-3.mp3",
+      "seconds": 6.089,
+      "hash": "672883d957dc"
+    }
+  ],
+  "skill": [
+    {
+      "file": "voiceover/skill-1.mp3",
+      "seconds": 7.719,
+      "hash": "f58d89ce3290"
+    },
+    {
+      "file": "voiceover/skill-2.mp3",
+      "seconds": 3.12,
+      "hash": "8708f18b53e8"
+    }
+  ],
+  "act": [
+    {
+      "file": "voiceover/act-1.mp3",
+      "seconds": 3.94,
+      "hash": "d906e512a2f4"
+    }
+  ],
+  "how": [
+    {
+      "file": "voiceover/how-1.mp3",
+      "seconds": 7.246,
+      "hash": "b558b6aec58d"
+    },
+    {
+      "file": "voiceover/how-2.mp3",
+      "seconds": 5.219,
+      "hash": "34b7d5f47066"
+    }
+  ],
+  "results": [
+    {
+      "file": "voiceover/results-1.mp3",
+      "seconds": 6.168,
+      "hash": "a4314ebf429f"
+    },
+    {
+      "file": "voiceover/results-2.mp3",
+      "seconds": 3.56,
+      "hash": "9fa93758db5c"
+    }
+  ],
+  "close": [
+    {
+      "file": "voiceover/close-1.mp3",
+      "seconds": 5.479,
+      "hash": "62b1b9296659"
+    },
+    {
+      "file": "voiceover/close-2.mp3",
+      "seconds": 2.481,
+      "hash": "652ea9522732"
+    }
+  ]
+}
