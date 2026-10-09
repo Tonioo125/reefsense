@@ -1,30 +1,84 @@
-# ReefCast
+# ReefSense
 
-**Near-term coral bleaching outlook and restoration priorities for Indonesian reefs.**
+**AI early warning for coral bleaching, and a transparent guide to where restoration will last. Built for Indonesian reefs.**
 
-**Live demo:** _(add the service URL after deploying)_
+- **Live site:** https://www.reefsense.online (backup: https://reefsense.fly.dev)
+- **Case study, Crystal Bay (Nusa Penida, Bali):** https://www.reefsense.online/?reef=NP01
+- **Demo video:** `demo/reefsense-demo.mp4`
+- **Track:** ForgeHacks 2026, AI + Climate. Built in 7 days by Antonio Owen Putra Amadeus and Glenn Putra Laymando.
 
-> Status: hackathon build. The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); results below come from `data/processed/model_metrics_*.json`. The ReefSense web app in `reefsense/` is the main frontend.
+> The model is trained on the Global Coral-Bleaching Database (Nov 2021 SQLite release); every number below comes from `data/processed/model_metrics_*.json` and `data/processed/model_validation.json`. The web app lives in `reefsense/`.
 
-## The problem
+## Problem statement
 
-Indonesia sits at the heart of the Coral Triangle, but its reefs often bleach under heat stress that standard alerts treat as mild: recent work on 8,424 Indonesian reef observations found that about 64% of bleaching occurred below 4 degree heating weeks (DHW), the level at which NOAA's alerts begin to escalate. Restoration teams also have limited budgets and need to know where their effort will last.
+Coral reefs bleach when the ocean stays too hot for too long. The world's standard warning system, NOAA Coral Reef Watch, measures that heat in **degree heating weeks (DHW)**: heat above a reef's usual warmest month, added up over the last 12 weeks. Its alerts start escalating at 4 DHW.
 
-## What ReefCast does
+In our own data, 23,186 labelled dive surveys, the rule "DHW ≥ 4" caught only about **1 in 4** bleaching events (26% globally, 22% in the Coral Triangle). Most reefs bleach before the alarm sounds.
 
-1. **Bleaching outlook per reef.** A machine-learning model estimates how likely a reef is to bleach given the past 12 weeks of satellite heat stress plus local conditions such as turbidity, depth and exposure.
-2. **Explanations.** Each estimate shows the factors that pushed it up or down, taken directly from the model's feature contributions.
-3. **Restoration priorities.** A transparent, adjustable ranking combines near-term bleaching risk with coral cover, long-term climate refugia (50 Reefs+) and larval connectivity. Users set the weights; nothing is hidden in a black box.
+That gap hurts most in Indonesia, at the heart of the Coral Triangle. People protecting reefs there have small budgets, and restoring a reef takes years, so they need answers to two questions that heat alerts alone cannot give:
 
-Case study: Bali and Nusa Penida.
+1. Which reefs are at risk **now**, even when there is no alert?
+2. Where is restoration effort **most likely to last**?
 
-## How it works
+## Target users
+
+| User | Decision ReefSense helps with |
+|---|---|
+| **Reef restoration teams** (NGOs, community groups) | *A Nusa Penida team choosing which 5 sites to plant this season:* rank reefs by low bleaching risk and healthy coral cover, with weights they set. |
+| **Marine-park managers and rangers** | Which reefs to survey first this month, including the 851 at-risk reefs where NOAA's alerts stayed silent. |
+| **Dive operators and local communities** | Understand what is happening to "their" reef in plain language, see past bleaching nearby, and find local groups to support. |
+| **Researchers and students** | Inspect the model's reasons for every estimate, and its validation, including where it fails. |
+
+## What ReefSense does
+
+1. **Bleaching outlook per reef.** For 3,780 surveyed reefs, mostly across Asia (635 in Indonesia), a model estimates the chance of avoiding significant bleaching (10% or more of colonies) under the last 12 weeks of live satellite heat stress.
+2. **The NOAA gap.** One click highlights the 851 reefs at elevated risk where NOAA's alerts did not reach Alert Level 1 in 12 weeks.
+3. **Every estimate explains itself.** A *Plain language* view for everyone; an *Expert* view with the satellite heat record, a what-if heat slider that re-runs the model live, and the model's reasons (which factors pushed the estimate up or down).
+4. **The full reef report.** Past bleaching surveys nearby, coral news from the region, a satellite view, openly licensed iNaturalist photos, and hand-picked local conservation groups with their own donation pages (ReefSense never handles money).
+5. **Where to restore first.** A transparent ranking of low bleaching risk and healthy coral cover, with user-set weights. Reefs without a dive survey are left out, not guessed. Climate refugia (50 Reefs+) and larval connectivity are **planned** criteria: the scoring supports them, but their data is not loaded yet.
+6. **Shareable links** to any reef, e.g. `?reef=NP01`.
+
+## Technical approach
+
+The AI is a model we trained and validated ourselves, not a call to a chatbot API.
 
 ```
 NOAA Coral Reef Watch (daily 5 km DHW, SST anomaly)  ─┐
 Global Coral-Bleaching Database (labelled surveys)  ──┼─> LightGBM bleaching model ─> site scores ─> FastAPI ─> React + Leaflet
-Allen Coral Atlas / MERMAID / 50 Reefs+ (context)   ──┘                                   └─> multi-criteria ranking
+MERMAID coral cover / UNEP-WCMC reef extent         ──┘         │                                   └─> transparent ranking
+                                                                └─> per-feature contributions (explanations), /api/predict (what-if)
 ```
+
+- **Label:** bleaching of 10% or more of colonies, from survey records (see below).
+- **Model:** class-balanced LightGBM classifier over 16 features: accumulated heat (DHW, max and mean DHW, SST anomaly and their frequencies) plus each reef's conditions (turbidity, depth, distance to shore, wave exposure, cyclone frequency, wind speed). Reported as "probability of high climate resilience" = 1 − P(bleaching ≥ 10%).
+- **Explainable AI:** LightGBM's exact per-feature contributions (SHAP-equivalent), which sum to the prediction in log-odds. The reasons on screen come straight from the trained model.
+- **Live inference:** every reef is rescored from the last 12 weeks of NOAA heat stress; the what-if slider calls `POST /api/predict`.
+- **Reefs without their own survey:** site conditions come from the nearest surveyed reefs (BallTree, haversine distance).
+- **Validation:** 5-fold cross-validation **grouped by ecoregion** (each fold tests on places the model never saw), then stress tests on later years, the 2016 global bleaching event and whole countries held out, always against heat alone on the same surveys (see Results).
+
+## Technical components
+
+| Layer | Components |
+|---|---|
+| Data pipeline | Python, pandas, NumPy, scikit-learn, LightGBM, joblib, GeoPandas (`pipeline/`) |
+| Data sources | NOAA Coral Reef Watch v3.1 (ERDDAP), Global Coral-Bleaching Database, MERMAID, iNaturalist, Mongabay, UNEP-WCMC reef extent |
+| API | FastAPI + Uvicorn (`backend/`): scores, explanations, heat and survey history, news, photos, support links, `/api/predict` |
+| Web app | React + TypeScript + Vite, Tailwind CSS + shadcn/ui, Leaflet maps, Recharts charts (`reefsense/`) |
+| Automation | GitHub Actions: daily NOAA heat refresh and rescoring, weekly coral cover, photos and donation-link check |
+| Deployment | One Docker image (web app + API on one URL) on Fly.io, custom domain with HTTPS |
+| Demo video | Remotion + Playwright recordings of the live site, Kokoro narration, music generated in code (`video/`) |
+
+## Real-world impact
+
+- **Earlier warning.** Highlights reefs at elevated risk that heat-only alerts miss, so rangers and divers can check them before bleaching spreads.
+- **Budgets go further.** Restoration teams can see where effort is most likely to last, instead of planting coral on a reef likely to bleach next season.
+- **Trust through transparency.** Every estimate shows its reasons, every ranking shows its weights, and the validation shows where the model fails (Japan). Users can judge the tool rather than take it on faith.
+- **Awareness that leads to action.** Plain-language summaries, nearby news and community photos make reef change understandable to non-scientists, and the reef report links to local conservation groups people can support.
+- **Kept fresh automatically.** Scheduled jobs refresh heat stress daily, so the map reflects the ocean now, not a static snapshot.
+
+ReefSense supports decisions; it does not replace field surveys. Every estimate is labelled a prediction, not an observation.
+
+## Results and method details
 
 | Component | Approach |
 |---|---|
@@ -33,7 +87,7 @@ Allen Coral Atlas / MERMAID / 50 Reefs+ (context)   ──┘                   
 | Validation | Grouped k-fold by ecoregion (spatial), not a random split |
 | Baseline | DHW alone, plus NOAA-style DHW ≥ 4 and ≥ 8 rules |
 | Explanations | LightGBM per-feature contributions (SHAP-equivalent) |
-| Ranking | Weighted multi-criteria score; missing criteria excluded per site |
+| Ranking | Weighted score of low bleaching risk and coral cover; missing criteria excluded per site (refugia and connectivity planned) |
 
 Percent bleaching per survey is taken, in order of preference, from the recorded percent of colonies bleached (8,947 surveys), the mean of Reef Check's four population-level transect segments (11,297), or the midpoint of a coarse severity code (2,942). See `pipeline/01b_import_gcbd_sqlite.py`.
 
@@ -46,7 +100,7 @@ Out-of-fold scores from 5-fold cross-validation grouped by ecoregion (each fold 
 | Global (served by the API) | 23,186 | 27.8% | **0.754** | 0.563 | 0.677 | 0.715 (n = 937) |
 | Coral Triangle | 3,778 | 11.5% | **0.724** | 0.373 | 0.675 | 0.733 (n = 937) |
 
-The NOAA-style rule "DHW ≥ 4" catches only 26% of bleaching events globally (22% in the Coral Triangle), which supports the premise above: most recorded bleaching happens below the heat level at which standard alerts escalate.
+The NOAA-style rule "DHW ≥ 4" catches only 26% of bleaching events globally (22% in the Coral Triangle), which is the "1 in 4" in the problem statement: most recorded bleaching happens below the heat level at which standard alerts escalate.
 
 #### Stress tests (`pipeline/06_validate_model.py`)
 
@@ -71,7 +125,7 @@ The model beats heat alone on later years, on the 2016 event and on an unseen In
 | [Global Coral-Bleaching Database](https://www.bco-dmo.org/dataset/773466) (van Woesik & Kratochwill 2022) | Training labels and features | CC BY 4.0 |
 | [Allen Coral Atlas](https://allencoralatlas.org/) | Reef habitat layers | CC BY 4.0 |
 | [MERMAID](https://datamermaid.org/) public summaries | Coral cover per site | Per project |
-| [50 Reefs+](https://zenodo.org/records/18729043) climate refugia layer | Ranking criterion and external check | See record |
+| [50 Reefs+](https://zenodo.org/records/18729043) climate refugia layer | Planned ranking criterion (not loaded yet) | See record |
 | [UNEP-WCMC Global Distribution of Coral Reefs](https://data.unep-wcmc.org/datasets/1) v4.1 (2021) | Reef-area map layer | UNEP-WCMC General Data License: non-commercial; may be shown online only if not downloadable, with citation |
 
 ## Run it locally
@@ -117,6 +171,16 @@ One Docker image (`Dockerfile`) serves the web app and the API from the same URL
 - [DEPLOY-CLOUD-RUN.md](DEPLOY-CLOUD-RUN.md): Google Cloud Run, free with the Google Cloud trial.
 - [DEPLOY.md](DEPLOY.md): Fly.io (`fly.toml`), about $2 a week. It also covers cost and alternatives.
 
+## What's next
+
+Built in 7 days, so we kept the scope honest. Next, in rough order:
+
+- **Climate refugia and larval connectivity in the ranking.** The scoring already supports extra criteria; we left these out rather than fake data we have not loaded yet (50 Reefs+ and a connectivity model).
+- **Bahasa Indonesia.** The plain-language view, the ranking and the reef report in Indonesian, for local communities, rangers and dive operators.
+- **Grounded Q&A per reef.** Ask questions about a reef and get answers written only from that reef's own model output, explanation, survey history and news, with sources shown, and "we don't know" when the data does not cover it.
+- **Feedback from restoration teams** working in Nusa Penida and the wider Coral Triangle on whether the ranking helps them choose sites.
+- **Coverage beyond Asia,** and an alert when a reef's predicted risk rises.
+
 ## Limitations
 
 - Training heat metrics in GCBD come from CoRTAD; live inputs come from NOAA CRW. Both measure accumulated heat stress, but they are different products.
@@ -138,6 +202,7 @@ pipeline/   data download, feasibility check, training, scoring
 backend/    FastAPI service (sites, model metrics, ranking)
 reefsense/  ReefSense web app (React + TypeScript + Leaflet + Recharts)
 frontend/   original React + Leaflet app
+reefresilience/  leftover build output from the app's earlier name (not used; the app lives in reefsense/)
 data/       raw (git-ignored), processed outputs, demo site list
 Dockerfile, fly.toml, DEPLOY.md   deployment (one image: web app + API)
 ```
